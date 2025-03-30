@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	node := can.Node{
+	node := can.Node[string, string]{ // Key type is string, val type is string
 		NodeID:    1,
 		IPAddress: "localhost:8080",
 	}
