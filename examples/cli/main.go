@@ -1,14 +1,18 @@
 package main
 
 import (
-	"fmt"
-	"github.com/Arnav-Negi/can"
+	"flag"
+)
+
+const (
+	// bootstrap
+	bootstrapPort = 5000
+)
+
+var (
+	port = flag.Int("port", 8080, "Port to listen on")
 )
 
 func main() {
-	node := can.Node{
-		NodeID:    1,
-		IPAddress: "localhost:8080",
-	}
-	fmt.Println(node)
+	
 }
