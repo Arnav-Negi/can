@@ -33,7 +33,8 @@ message Node {
 message JoinRequest {
   // coordinates of the zone to be split - should be exactly d floats
   repeated float coordinates = 1;
-  Node node = 2; // The node that is joining the network
+  string node_id = 2; // Unique identifier for the node
+  string address = 3; // IP:Port of the node
 }
 
 message JoinResponse {
@@ -56,20 +57,4 @@ message StoreRequest {
 }
 
 message StoreResponse {
-  bool success = 1;
-}
-
-// Empty message (used for requests with no parameters)
-message Empty {}
-
-// Response containing a list of neighbors
-message NeighborList {
-  repeated Neighbor neighbors = 1;
-}
-
-// Represents a neighboring node
-message Neighbor {
-  string node_id = 1;
-  string address = 2;
-  string zone = 3; // Example: "x_min,y_min,x_max,y_max"
 }

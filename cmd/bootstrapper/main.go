@@ -38,20 +38,20 @@ func NewBootstrapServer(dimensions uint32) *BootstrapServer {
 	}
 }
 
-// JoinQuery implements the JoinQuery RPC method
-func (s *BootstrapServer) JoinQuery(ctx context.Context, req *pb.JoinQueryRequest) (*pb.JoinQueryResponse, error) {
+// JoinInfo implements the JoinInfo RPC method
+func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest) (*pb.JoinInfoResponse, error) {
 	log.Printf("Received join request from: %s", req.Address)
-
-	// Add the requesting node to active nodes if not already present
-	s.addNode(req.Address)
 
 	// Create a response with the CAN network dimensions, server's node ID,
 	// and the list of active nodes
-	response := &pb.JoinQueryResponse{
+	response := &pb.JoinInfoResponse{
 		NodeId:      uuid.New().String(),
 		Dimensions:  s.dimensions,
 		ActiveNodes: s.getActiveNodes(),
 	}
+
+	// Add the requesting node to active nodes if not already present
+	s.addNode(req.Address)
 
 	return response, nil
 }

@@ -12,7 +12,7 @@ const (
 )
 
 var (
-	port = flag.Int("port", 8080, "Port to listen on")
+	port = flag.Int("port", 5000, "Port to listen on")
 )
 
 func main() {
@@ -23,5 +23,12 @@ func main() {
 		fmt.Println("Error initializing DHT:", err)
 		return
 	}
-	fmt.Println("DHT initialized with IP address:", dht.IPAddress)
+	err = dht.Join(fmt.Sprintf("localhost:%d", *port))
+
+	if err != nil {
+		fmt.Println("Error joining DHT:", err)
+		return
+	}
+
+	fmt.Println("DHT initialized with IP address:", dht.Node.IPAddress)
 }

@@ -1,39 +1,33 @@
-/*
-	This file contains implementation of the DHT type.
-	DHT is the user facing API for the CAN network.
-	DHT uses other modules internally for routing, encryption,
-	fault tolerance etc.
-*/
-
 package can
 
 import (
-	"strconv"
-	"sync"
+	"github.com/Arnav-Negi/can/internal/dht"
 )
 
 type DHT struct {
-	//config       *config.Config
-	//store        *store.Store
-	//routingTable *routing.RoutingTable
-	address string
-	mu      sync.Mutex
+	Node *dht.Node
 }
 
-// NewDHT This function is used to create a new DHT instance.
-// It initializes the DHT with the provided configuration.
-func NewDHT(port int) *DHT {
-	return &DHT{
-		address: "localhost:" + strconv.Itoa(port),
+// NewDHT This function initializes a new DHT instance.
+// Bootstrap must be called to join the network.
+func NewDHT(port int) (*DHT, error) {
+	// Initialize a new node, not yet connected to the network
+	node, err := dht.NewNode(port)
+	if err != nil {
+		return nil, err
 	}
+
+	return &DHT{
+		Node: node,
+	}, nil
 }
 
 // Bootstrap This starts the DHT, might take some time to set up and join
 // the overlay network.
 // If no bootstrap node is provided, it returns an error
-func (dht *DHT) Bootstrap() error {
-	//TODO implement me
-	panic("implement me")
+func (dht *DHT) Join(bootstrapAddr string) error {
+	err := dht.Node.Join(bootstrapAddr)
+	return err
 }
 
 // Leave This function is used to leave the CAN network.
