@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package can;
+
+option go_package = "./protofiles";
+
+// BootstrapService provides the ability to discover nodes in the network
+service BootstrapService {
+  // JoinQuery returns a list of active nodes in the network
+  rpc JoinQuery(JoinQueryRequest) returns (JoinQueryResponse);
+}
+
+// JoinQueryRequest contains information about a node in the network
+message JoinQueryRequest {
+  // Address where the node can be reached
+  string address = 1;
+}
+
+// JoinQueryResponse contains a list of active nodes in the network
+message JoinQueryResponse {
+  uint32 dimensions = 1;
+  string node_id = 2;
+  repeated string active_nodes = 3; // IP Addresses of active nodes
+}
