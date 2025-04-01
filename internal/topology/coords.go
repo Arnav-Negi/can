@@ -23,21 +23,6 @@ type Zone struct {
 	nextSplitIndex uint32
 }
 
-func NewZoneFromProto(zone *pb.Zone) Zone {
-	// Initialize the zone with default values
-	zoneObj := Zone{
-		nextSplitIndex: 0,
-	}
-	dims := len(zone.MinCoordinates)
-	zoneObj.coordMins = make([]float32, dims)
-	zoneObj.coordMaxs = make([]float32, dims)
-	for i := 0; i < dims; i++ {
-		zoneObj.coordMins[i] = zone.MinCoordinates[i]
-		zoneObj.coordMaxs[i] = zone.MaxCoordinates[i]
-	}
-	return zoneObj
-}
-
 /*
 NodeInfo is used to store the information of a node in the
 routing table.
@@ -60,6 +45,21 @@ func NewZone(dims uint) Zone {
 		zone.coordMaxs[i] = 1
 	}
 	return zone
+}
+
+func NewZoneFromProto(zone *pb.Zone) Zone {
+	// Initialize the zone with default values
+	zoneObj := Zone{
+		nextSplitIndex: 0,
+	}
+	dims := len(zone.MinCoordinates)
+	zoneObj.coordMins = make([]float32, dims)
+	zoneObj.coordMaxs = make([]float32, dims)
+	for i := 0; i < dims; i++ {
+		zoneObj.coordMins[i] = zone.MinCoordinates[i]
+		zoneObj.coordMaxs[i] = zone.MaxCoordinates[i]
+	}
+	return zoneObj
 }
 
 func (z Zone) Distance(coords []float32) float32 {

@@ -2,6 +2,8 @@ package store
 
 import (
 	"database/sql"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"log"
 	"sync"
 
@@ -24,28 +26,20 @@ func NewMemoryStore() *MemoryStore {
 	}
 }
 
-func (m *MemoryStore) Insert(key string, value []byte) error {
+func (m *MemoryStore) Insert(key string, value []byte) {
 	m.Store[key] = value
-	return nil
 }
 
 func (m *MemoryStore) Retrieve(key string) ([]byte, error) {
 	Value, ok := m.Store[key]
 	if !ok {
-		log.Printf("Key %s not found in memory store", key)
-		return nil, nil
+		return nil, status.Error(codes.NotFound, "Key not found")
 	}
 	return Value, nil
 }
 
-func (m *MemoryStore) Delete(key string) error {
-	_, ok := m.Store[key]
-	if !ok {
-		log.Printf("Key %s not found in memory store", key)
-		return nil
-	}
+func (m *MemoryStore) Delete(key string) {
 	delete(m.Store, key)
-	return nil
 }
 
 // Credits for some of the design decisions

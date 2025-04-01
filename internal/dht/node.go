@@ -8,7 +8,9 @@ import (
 	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 	"math/rand"
 	"strconv"
 	"sync"
@@ -47,8 +49,8 @@ func GetRandomCoordinates(dims uint) []float32 {
 	return coords
 }
 
-// Join queries bootstrap node and sends a join query
-func (node *Node) Join(bootstrapAddr string) error {
+// JoinImplementation queries bootstrap node and sends a join query
+func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	node.mu.Lock()
 	defer node.mu.Unlock()
 	// Query the bootstrap node for info
@@ -81,7 +83,7 @@ func (node *Node) Join(bootstrapAddr string) error {
 		return nil
 	}
 
-	// Send Join request to one of the CAN nodes
+	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
 	randCoords := GetRandomCoordinates(dims)
 	joinRequest := &pb.JoinRequest{
@@ -112,4 +114,91 @@ func (node *Node) Join(bootstrapAddr string) error {
 	}
 
 	return nil
+}
+
+// PutImplementation This function is used to store a value in the DHT.
+// Overwrites the value if the key already exists.
+func (node *Node) PutImplementation(key string, value []byte) error {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	// Find coordinates for the key
+	coords := node.RoutingTable.HashFunction.GetCoordinates(key)
+
+	// If in zone, store it locally
+	if node.Info.Zone.Contains(coords) {
+		// Store the key-value pair in the local store
+		node.KVStore.Insert(key, value)
+		return nil
+	}
+
+	// Need to route
+	// Get IPs sorted by distance
+	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+	if len(closestNodes) == 0 {
+		return status.Errorf(codes.NotFound, "No nodes found in the routing table")
+	}
+
+	// Send the store request to the closest node
+	storeRequest := &pb.StoreRequest{
+		Key:   key,
+		Value: value,
+	}
+	for _, closestNode := range closestNodes {
+		canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			continue
+		}
+		canServiceClient := pb.NewCANNodeClient(canConn)
+		_, err = canServiceClient.Store(context.Background(), storeRequest)
+		if err != nil {
+			continue
+		}
+		return nil
+	}
+	return status.Errorf(codes.Unavailable, "DHT is unavailable")
+}
+
+// GetImplementation This function is used to retrieve a value from the DHT.
+// Error if the key does not exist or unable to retrieve the value.
+func (node *Node) GetImplementation(key string) ([]byte, error) {
+	node.mu.RLock()
+	defer node.mu.RUnlock()
+
+	// Find coordinates for the key
+	coords := node.RoutingTable.HashFunction.GetCoordinates(key)
+
+	// If in zone, retrieve it locally
+	if node.Info.Zone.Contains(coords) {
+		// Retrieve the key-value pair from the local store
+		value, err := node.KVStore.Retrieve(key)
+		if err != nil {
+			return nil, status.Errorf(codes.NotFound, "Key not found")
+		}
+		return value, nil
+	}
+
+	// Need to route
+	// Get IPs sorted by distance
+	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+	if len(closestNodes) == 0 {
+		return nil, status.Errorf(codes.NotFound, "No nodes found in the routing table")
+	}
+
+	// Send the get request to the closest node
+	getRequest := &pb.LookupRequest{
+		Key: key,
+	}
+	for _, closestNode := range closestNodes {
+		canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			continue
+		}
+		canServiceClient := pb.NewCANNodeClient(canConn)
+		getResponse, err := canServiceClient.Lookup(context.Background(), getRequest)
+		if err == nil {
+			return getResponse.Value, nil
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "Key not found in DHT")
 }

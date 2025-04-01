@@ -47,13 +47,13 @@ message LookupRequest {
   string key = 1;
 }
 message LookupResponse {
-  string value = 1;
+  bytes value = 1;
 }
 
 // Request for storing a key-value pair
 message StoreRequest {
   string key = 1;
-  string value = 2;
+  bytes value = 2;
 }
 
 message StoreResponse {

@@ -22,12 +22,18 @@ func NewDHT(port int) (*DHT, error) {
 	}, nil
 }
 
+// StartNode This function starts the gRPC server for the DHT node.
+// It listens for incoming requests and handles them.
+// To be called using goroutines
+func (dht *DHT) StartNode() error {
+	return dht.Node.StartGRPCServer()
+}
+
 // Bootstrap This starts the DHT, might take some time to set up and join
 // the overlay network.
 // If no bootstrap node is provided, it returns an error
 func (dht *DHT) Join(bootstrapAddr string) error {
-	err := dht.Node.Join(bootstrapAddr)
-	return err
+	return dht.Node.JoinImplementation(bootstrapAddr)
 }
 
 // Leave This function is used to leave the CAN network.
@@ -40,13 +46,11 @@ func (dht *DHT) Leave() error {
 // Put This function is used to store a value in the DHT.
 // Overwrites the value if the key already exists.
 func (dht *DHT) Put(key string, value []byte) error {
-	//TODO implement me
-	panic("implement me")
+	return dht.Node.PutImplementation(key, value)
 }
 
 // Get This function is used to retrieve a value from the DHT.
 // Error if the key does not exist or unable to retrieve the value.
 func (dht *DHT) Get(key string) ([]byte, error) {
-	//TODO implement me
-	panic("implement me")
+	return dht.Node.GetImplementation(key)
 }
