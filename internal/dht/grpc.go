@@ -3,6 +3,7 @@ package dht
 import (
 	"context"
 	"fmt"
+	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -11,9 +12,18 @@ import (
 	"net"
 )
 
-func (node *Node) StartGRPCServer() error {
+func (node *Node) StartGRPCServer(port int) error {
+	ip, err := utils.GetIPAddress()
+	if err != nil {
+		return fmt.Errorf("failed to get IP address: %v", err)
+	}
+
 	// Start the gRPC server
-	lis, err := net.Listen("tcp", node.IPAddress)
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
+
+	// extract IP address from the listener
+	node.IPAddress = lis.Addr().String()
+
 	if err != nil {
 		return fmt.Errorf("failed to listen: %v", err)
 	}

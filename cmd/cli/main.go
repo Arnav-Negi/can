@@ -17,19 +17,20 @@ var (
 func main() {
 	flag.Parse()
 	fmt.Println("Starting CAN DHT...")
-	dht, err := can.NewDHT(*port)
-	if err != nil {
-		fmt.Println("Error initializing DHT:", err)
-		return
-	}
-	err = dht.Join(fmt.Sprintf("localhost:%d", *bootstrapPort))
+
+	dht := can.NewDHT()
+
+	// DHT must be started in a goroutine before making any calls to it
+	go dht.StartNode(*port)
+
+	fmt.Println("Listening on :", dht.Node.IPAddress)
+
+	err := dht.Join(fmt.Sprintf("localhost:%d", *bootstrapPort))
 
 	if err != nil {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
-
-	go dht.StartNode()
 
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 

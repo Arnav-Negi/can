@@ -10,24 +10,19 @@ type DHT struct {
 
 // NewDHT This function initializes a new DHT instance.
 // Bootstrap must be called to join the network.
-// port: Port to listen on, 0 for random port
-func NewDHT(port int) (*DHT, error) {
+func NewDHT() *DHT {
 	// Initialize a new node, not yet connected to the network
-	node, err := dht.NewNode(port)
-	if err != nil {
-		return nil, err
-	}
-
 	return &DHT{
-		Node: node,
-	}, nil
+		Node: dht.NewNode(),
+	}
 }
 
 // StartNode This function starts the gRPC server for the DHT node.
 // It listens for incoming requests and handles them.
 // To be called using goroutines
-func (dht *DHT) StartNode() error {
-	return dht.Node.StartGRPCServer()
+// port: Port to listen on, 0 for random port
+func (dht *DHT) StartNode(port int) error {
+	return dht.Node.StartGRPCServer(port)
 }
 
 // Bootstrap This starts the DHT, might take some time to set up and join

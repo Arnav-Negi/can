@@ -16,6 +16,13 @@ func main() {
 			}
 		}
 	}
+
+	// get random port using listen
+	listener, err := net.Listen("tcp", "10.1.133.11:0")
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(listener.Addr().String())
 }
 
 // GetAvailablePort returns an available port on the local machine

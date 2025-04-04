@@ -5,14 +5,12 @@ import (
 	"github.com/Arnav-Negi/can/internal/routing"
 	"github.com/Arnav-Negi/can/internal/store"
 	"github.com/Arnav-Negi/can/internal/topology"
-	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"math/rand"
-	"strconv"
 	"sync"
 )
 
@@ -26,19 +24,14 @@ type Node struct {
 }
 
 // NewNode This function initializes a new Node instance.
-func NewNode(port int) (*Node, error) {
-	ip, err := utils.GetIPAddress()
-	if err != nil {
-		return nil, err
-	}
-
-	ipAddress := ip + ":" + strconv.Itoa(port)
+func NewNode() *Node {
+	ipAddress := "localhost:0"
 
 	return &Node{
 		IPAddress:    ipAddress,
 		KVStore:      store.NewMemoryStore(),
 		RoutingTable: nil,
-	}, nil
+	}
 }
 
 func GetRandomCoordinates(dims uint) []float32 {
