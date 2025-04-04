@@ -68,9 +68,16 @@ func (z Zone) Distance(coords []float32) float32 {
 	dist := float32(0)
 	for i := 0; i < len(z.coordMaxs); i++ {
 		midCoords[i] = (z.coordMins[i] + z.coordMaxs[i]) / 2
-		disti := coords[i] - midCoords[i]
+		// distance to add is square of either (mid - x) or (1 + x - mid) or (1 + mid - x)
+		// this is due to the toroidal space, minimum of the three is taken
+		distOption1 := math.Abs(float64(midCoords[i] - coords[i]))
+		distOption2 := math.Abs(float64(1 + coords[i] - midCoords[i]))
+		distOption3 := math.Abs(float64(1 + midCoords[i] - coords[i]))
+		
+		disti := math.Min(distOption1, distOption2)
+		disti = math.Min(disti, distOption3)
 		disti = disti * disti
-		dist += disti
+		dist += float32(disti)
 	}
 
 	return float32(math.Sqrt(float64(dist)))
