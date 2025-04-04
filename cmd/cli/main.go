@@ -30,6 +30,7 @@ func main() {
 	}
 
 	go dht.StartNode()
+
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 
 	// CLI for interacting with the DHT

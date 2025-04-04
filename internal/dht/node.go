@@ -140,7 +140,7 @@ func (node *Node) PutImplementation(key string, value []byte) error {
 	}
 
 	// Send the store request to the closest node
-	storeRequest := &pb.StoreRequest{
+	storeRequest := &pb.PutRequest{
 		Key:   key,
 		Value: value,
 	}
@@ -150,7 +150,7 @@ func (node *Node) PutImplementation(key string, value []byte) error {
 			continue
 		}
 		canServiceClient := pb.NewCANNodeClient(canConn)
-		_, err = canServiceClient.Store(context.Background(), storeRequest)
+		_, err = canServiceClient.Put(context.Background(), storeRequest)
 		if err != nil {
 			continue
 		}
@@ -186,7 +186,7 @@ func (node *Node) GetImplementation(key string) ([]byte, error) {
 	}
 
 	// Send the get request to the closest node
-	getRequest := &pb.LookupRequest{
+	getRequest := &pb.GetRequest{
 		Key: key,
 	}
 	for _, closestNode := range closestNodes {
@@ -195,7 +195,7 @@ func (node *Node) GetImplementation(key string) ([]byte, error) {
 			continue
 		}
 		canServiceClient := pb.NewCANNodeClient(canConn)
-		getResponse, err := canServiceClient.Lookup(context.Background(), getRequest)
+		getResponse, err := canServiceClient.Get(context.Background(), getRequest)
 		if err == nil {
 			return getResponse.Value, nil
 		}

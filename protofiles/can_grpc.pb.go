@@ -19,9 +19,9 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CANNode_Join_FullMethodName   = "/can.CANNode/Join"
-	CANNode_Lookup_FullMethodName = "/can.CANNode/Lookup"
-	CANNode_Store_FullMethodName  = "/can.CANNode/Store"
+	CANNode_Join_FullMethodName = "/can.CANNode/Join"
+	CANNode_Get_FullMethodName  = "/can.CANNode/Get"
+	CANNode_Put_FullMethodName  = "/can.CANNode/Put"
 )
 
 // CANNodeClient is the client API for CANNode service.
@@ -32,10 +32,10 @@ const (
 type CANNodeClient interface {
 	// Join the CAN network
 	Join(ctx context.Context, in *JoinRequest, opts ...grpc.CallOption) (*JoinResponse, error)
-	// Lookup a key in the CAN network
-	Lookup(ctx context.Context, in *LookupRequest, opts ...grpc.CallOption) (*LookupResponse, error)
-	// Store a key-value pair in the CAN network
-	Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error)
+	// Get a key in the CAN network
+	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
+	// Put a key-value pair in the CAN network
+	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
 }
 
 type cANNodeClient struct {
@@ -56,20 +56,20 @@ func (c *cANNodeClient) Join(ctx context.Context, in *JoinRequest, opts ...grpc.
 	return out, nil
 }
 
-func (c *cANNodeClient) Lookup(ctx context.Context, in *LookupRequest, opts ...grpc.CallOption) (*LookupResponse, error) {
+func (c *cANNodeClient) Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(LookupResponse)
-	err := c.cc.Invoke(ctx, CANNode_Lookup_FullMethodName, in, out, cOpts...)
+	out := new(GetResponse)
+	err := c.cc.Invoke(ctx, CANNode_Get_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *cANNodeClient) Store(ctx context.Context, in *StoreRequest, opts ...grpc.CallOption) (*StoreResponse, error) {
+func (c *cANNodeClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
-	out := new(StoreResponse)
-	err := c.cc.Invoke(ctx, CANNode_Store_FullMethodName, in, out, cOpts...)
+	out := new(PutResponse)
+	err := c.cc.Invoke(ctx, CANNode_Put_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +84,10 @@ func (c *cANNodeClient) Store(ctx context.Context, in *StoreRequest, opts ...grp
 type CANNodeServer interface {
 	// Join the CAN network
 	Join(context.Context, *JoinRequest) (*JoinResponse, error)
-	// Lookup a key in the CAN network
-	Lookup(context.Context, *LookupRequest) (*LookupResponse, error)
-	// Store a key-value pair in the CAN network
-	Store(context.Context, *StoreRequest) (*StoreResponse, error)
+	// Get a key in the CAN network
+	Get(context.Context, *GetRequest) (*GetResponse, error)
+	// Put a key-value pair in the CAN network
+	Put(context.Context, *PutRequest) (*PutResponse, error)
 	mustEmbedUnimplementedCANNodeServer()
 }
 
@@ -101,11 +101,11 @@ type UnimplementedCANNodeServer struct{}
 func (UnimplementedCANNodeServer) Join(context.Context, *JoinRequest) (*JoinResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Join not implemented")
 }
-func (UnimplementedCANNodeServer) Lookup(context.Context, *LookupRequest) (*LookupResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Lookup not implemented")
+func (UnimplementedCANNodeServer) Get(context.Context, *GetRequest) (*GetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (UnimplementedCANNodeServer) Store(context.Context, *StoreRequest) (*StoreResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
+func (UnimplementedCANNodeServer) Put(context.Context, *PutRequest) (*PutResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
 }
 func (UnimplementedCANNodeServer) mustEmbedUnimplementedCANNodeServer() {}
 func (UnimplementedCANNodeServer) testEmbeddedByValue()                 {}
@@ -146,38 +146,38 @@ func _CANNode_Join_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CANNode_Lookup_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(LookupRequest)
+func _CANNode_Get_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CANNodeServer).Lookup(ctx, in)
+		return srv.(CANNodeServer).Get(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CANNode_Lookup_FullMethodName,
+		FullMethod: CANNode_Get_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CANNodeServer).Lookup(ctx, req.(*LookupRequest))
+		return srv.(CANNodeServer).Get(ctx, req.(*GetRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _CANNode_Store_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(StoreRequest)
+func _CANNode_Put_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PutRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(CANNodeServer).Store(ctx, in)
+		return srv.(CANNodeServer).Put(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: CANNode_Store_FullMethodName,
+		FullMethod: CANNode_Put_FullMethodName,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(CANNodeServer).Store(ctx, req.(*StoreRequest))
+		return srv.(CANNodeServer).Put(ctx, req.(*PutRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -194,12 +194,12 @@ var CANNode_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _CANNode_Join_Handler,
 		},
 		{
-			MethodName: "Lookup",
-			Handler:    _CANNode_Lookup_Handler,
+			MethodName: "Get",
+			Handler:    _CANNode_Get_Handler,
 		},
 		{
-			MethodName: "Store",
-			Handler:    _CANNode_Store_Handler,
+			MethodName: "Put",
+			Handler:    _CANNode_Put_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

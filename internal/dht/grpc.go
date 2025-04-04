@@ -28,9 +28,9 @@ func (node *Node) StartGRPCServer() error {
 func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Bootstrap not implemented")
 }
-func (node *Node) Lookup(ctx context.Context, req *pb.LookupRequest) (*pb.LookupResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Lookup not implemented")
+func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
 }
-func (node *Node) Store(ctx context.Context, req *pb.StoreRequest) (*pb.StoreResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Store not implemented")
+func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
 }

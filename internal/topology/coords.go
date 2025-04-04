@@ -10,7 +10,7 @@ type Zone struct {
 	/*
 		Coordinates of the zone in a dims dimensional toroidal space
 		Coordinates are points [x1, x2, ..., xd] where
-		coordMins[i] <= xi <= coordMaxs[i]
+		coordMins[i] <= xi < coordMaxs[i]
 	*/
 	coordMins []float32
 	coordMaxs []float32
@@ -73,7 +73,7 @@ func (z Zone) Distance(coords []float32) float32 {
 		distOption1 := math.Abs(float64(midCoords[i] - coords[i]))
 		distOption2 := math.Abs(float64(1 + coords[i] - midCoords[i]))
 		distOption3 := math.Abs(float64(1 + midCoords[i] - coords[i]))
-		
+
 		disti := math.Min(distOption1, distOption2)
 		disti = math.Min(disti, distOption3)
 		disti = disti * disti
@@ -86,7 +86,7 @@ func (z Zone) Distance(coords []float32) float32 {
 func (z Zone) Contains(coords []float32) bool {
 	utils.Assert(len(coords) == len(z.coordMaxs), "Invalid coordinates")
 	for i := 0; i < len(z.coordMaxs); i++ {
-		if coords[i] < z.coordMins[i] || coords[i] > z.coordMaxs[i] {
+		if coords[i] < z.coordMins[i] || coords[i] >= z.coordMaxs[i] {
 			return false
 		}
 	}

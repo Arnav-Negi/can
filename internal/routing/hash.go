@@ -46,7 +46,7 @@ func (mh *MultiHash) GetCoordinates(key string) []float32 {
 		keyHash := binary.BigEndian.Uint64(h.Sum(nil))
 		result := keyHash ^ mh.seeds[i]
 
-		// Map the result to the range [0, 1]
+		// Map the result to the range [0, 1)
 		coordinates[i] = float32(result) / float32(math.MaxUint64)
 	}
 

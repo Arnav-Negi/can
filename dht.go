@@ -10,6 +10,7 @@ type DHT struct {
 
 // NewDHT This function initializes a new DHT instance.
 // Bootstrap must be called to join the network.
+// port: Port to listen on, 0 for random port
 func NewDHT(port int) (*DHT, error) {
 	// Initialize a new node, not yet connected to the network
 	node, err := dht.NewNode(port)
