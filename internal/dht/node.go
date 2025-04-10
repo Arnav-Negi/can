@@ -266,6 +266,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 		log.Printf("Warning: Failed to notify some neighbors: %v", err)
 	}
 
+	// Log the join event
+	log.Printf("Node %s joined the network with zone %v", node.Info.NodeId, node.Info.Zone)
+
 	return nil
 }
 

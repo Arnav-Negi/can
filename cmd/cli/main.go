@@ -7,6 +7,7 @@ import (
 	"github.com/Arnav-Negi/can"
 	"os"
 	"strings"
+	"time"
 )
 
 var (
@@ -22,6 +23,9 @@ func main() {
 
 	// DHT must be started in a goroutine before making any calls to it
 	go dht.StartNode(*port)
+
+	// TODO: Replace with synchronization structure like ctx
+	time.Sleep(1 * time.Second)
 
 	fmt.Println("Listening on :", dht.Node.IPAddress)
 

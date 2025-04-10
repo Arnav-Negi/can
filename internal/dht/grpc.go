@@ -87,6 +87,11 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 		})
 	}
 
+	// Log the join event
+	log.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
+	log.Printf("Updated neighbors: %v", pbNeighbors)
+	log.Printf("Current zone: %v", node.Info.Zone)
+
 	return &pb.JoinResponse{
 		AssignedZone:    zoneToProto(newZone),
 		Neighbors:       pbNeighbors,
@@ -118,6 +123,8 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 
 	// Add the node to our routing table
 	node.RoutingTable.AddNode(neighborInfo)
+
+	log.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
 
 	return &pb.AddNeighborResponse{Success: true}, nil
 }
