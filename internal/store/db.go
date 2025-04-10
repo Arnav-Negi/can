@@ -42,6 +42,12 @@ func (m *MemoryStore) Delete(key string) {
 	delete(m.Store, key)
 }
 
+func (m *MemoryStore) ForEach(callback func(key string, value []byte)) {
+	for key, value := range m.Store {
+		callback(key, value)
+	}
+}
+
 // Credits for some of the design decisions
 // https://brandonrozek.com/blog/simple-kv-store-sqlite/
 type KVStore struct {

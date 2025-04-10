@@ -42,6 +42,119 @@ func GetRandomCoordinates(dims uint) []float32 {
 	return coords
 }
 
+// splitZone splits the current zone and returns the new zone and transferred data
+func (node *Node) splitZone(coords []float32) (topology.Zone, map[string][]byte, error) {
+	dims := len(node.Info.Zone.GetCoordMins())
+
+	// Determine the dimension with the largest span
+	maxSpan := float32(0)
+	splitDim := 0
+	currentMin := node.Info.Zone.GetCoordMins()
+	currentMax := node.Info.Zone.GetCoordMaxs()
+
+	for i := 0; i < dims; i++ {
+		span := currentMax[i] - currentMin[i]
+		if span > maxSpan {
+			maxSpan = span
+			splitDim = i
+		}
+	}
+
+	// Split the zone along the dimension with the largest span
+	midpoint := (currentMin[splitDim] + currentMax[splitDim]) / 2
+
+	// Create the new zone
+	newMin := make([]float32, dims)
+	newMax := make([]float32, dims)
+	copy(newMin, currentMin)
+	copy(newMax, currentMax)
+
+	// Adjust the zones based on where the coordinates are
+	if coords[splitDim] < midpoint {
+		// Joining point is in the lower half
+		// New node gets lower half
+		newMax[splitDim] = midpoint
+		currentMin[splitDim] = midpoint
+	} else {
+		// Joining point is in the upper half
+		// New node gets upper half
+		newMin[splitDim] = midpoint
+		currentMax[splitDim] = midpoint
+	}
+
+	// Update our own zone
+	node.Info.Zone.SetCoordMins(currentMin)
+	node.Info.Zone.SetCoordMaxs(currentMax)
+
+	// Create the new zone object
+	newZone := topology.NewZone(uint(dims))
+	newZone.SetCoordMins(newMin)
+	newZone.SetCoordMaxs(newMax)
+
+	// Transfer data that falls in the new zone
+	transferredData := make(map[string][]byte)
+	keysToRemove := []string{}
+
+	node.KVStore.ForEach(func(key string, value []byte) {
+		// Calculate coordinates for the key
+		keyCoords := node.RoutingTable.HashFunction.GetCoordinates(key)
+
+		// Check if the key belongs to the new zone
+		if newZone.Contains(keyCoords) {
+			transferredData[key] = value
+			keysToRemove = append(keysToRemove, key)
+		}
+	})
+
+	// Remove transferred keys from our store
+	for _, key := range keysToRemove {
+		node.KVStore.Delete(key)
+	}
+
+	return newZone, transferredData, nil
+}
+
+// updateNeighbors returns the list of neighbors for a given zone
+func (node *Node) updateNeighbors(newZone topology.Zone) []topology.NodeInfo {
+	// First, collect all current neighbors
+	neighbors := make([]topology.NodeInfo, 0)
+
+	// Add ourselves as a neighbor to the new node
+	neighbors = append(neighbors, *node.Info)
+
+	// Check all existing neighbors
+	for _, neighbor := range node.RoutingTable.Neighbours {
+		// If the neighbor is adjacent to the new zone, add it
+		if newZone.IsAdjacent(neighbor.Zone) {
+			neighbors = append(neighbors, neighbor)
+		}
+
+		// If the neighbor is no longer adjacent to our zone, remove it
+		if !node.Info.Zone.IsAdjacent(neighbor.Zone) {
+			// Find and remove this neighbor
+			for i, n := range node.RoutingTable.Neighbours {
+				if n.NodeId == neighbor.NodeId {
+					node.RoutingTable.Neighbours = append(
+						node.RoutingTable.Neighbours[:i],
+						node.RoutingTable.Neighbours[i+1:]...,
+					)
+					break
+				}
+			}
+		}
+	}
+
+	// Add the new node as our neighbor
+	newNodeInfo := topology.NodeInfo{
+		NodeId:    "", // This will be filled by the caller
+		IpAddress: "", // This will be filled by the caller
+		Zone:      newZone,
+	}
+	node.RoutingTable.AddNode(newNodeInfo)
+
+	return neighbors
+}
+
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	node.mu.Lock()
@@ -78,7 +191,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
-	randCoords := GetRandomCoordinates(dims)
+	randCoords := GetRandomCoordinates(dims) // Joining point P
 	joinRequest := &pb.JoinRequest{
 		Coordinates: randCoords,
 		NodeId:      joinInfo.NodeId,
@@ -105,6 +218,14 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Zone:      topology.NewZoneFromProto(nodeInfo.Zone),
 		})
 	}
+
+	// Store the transferred data
+	for _, kv := range joinResponse.TransferredData {
+		node.KVStore.Insert(kv.Key, kv.Value)
+	}
+
+	// Inform neighbors about the new node
+	// Skip for now, we'll implement this later if needed
 
 	return nil
 }

@@ -25,7 +25,7 @@ func (dht *DHT) StartNode(port int) error {
 	return dht.Node.StartGRPCServer(port)
 }
 
-// Bootstrap This starts the DHT, might take some time to set up and join
+// Join Bootstrap This starts the DHT, might take some time to set up and join
 // the overlay network.
 // If no bootstrap node is provided, it returns an error
 func (dht *DHT) Join(bootstrapAddr string) error {

@@ -17,7 +17,7 @@ service CANNode {
 }
 
 
-// meta types Zone and Node
+// meta types Zone, Node and KeyValuePair
 message Zone {
   repeated float minCoordinates = 1; // coordinates of the zone (d)
   repeated float maxCoordinates = 2; // coordinates of the zone (d)
@@ -27,7 +27,10 @@ message Node {
   string address = 2; // IP:Port of the node
   Zone zone = 3; // The zone assigned to the node
 }
-
+message KeyValuePair {
+  string key = 1;
+  bytes value = 2;
+}
 
 // Request for joining the CAN network
 message JoinRequest {
@@ -40,6 +43,7 @@ message JoinRequest {
 message JoinResponse {
   Zone assigned_zone = 1; // The zone assigned to the node
   repeated Node neighbors = 2; // List of neighboring nodes (2*d)
+  repeated KeyValuePair transferred_data = 3; // Key-value pairs for the assigned zone
 }
 
 // Request for looking up a key
