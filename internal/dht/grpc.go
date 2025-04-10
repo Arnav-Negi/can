@@ -66,7 +66,7 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 		return nil, err
 	}
 
-	// Update neighbors
+	// Update neighbors - pass the new node's ID and address
 	neighbors := node.updateNeighbors(newZone)
 
 	// Create response
@@ -92,6 +92,34 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 		Neighbors:       pbNeighbors,
 		TransferredData: pbKeyValuePairs,
 	}, nil
+}
+
+// AddNeighbor handles requests to add a node as a neighbor
+func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (*pb.AddNeighborResponse, error) {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	if req.Neighbor == nil {
+		return &pb.AddNeighborResponse{Success: false}, status.Errorf(codes.InvalidArgument, "Neighbor information is missing")
+	}
+
+	// Convert proto node to topology node
+	neighborZone := topology.NewZoneFromProto(req.Neighbor.Zone)
+	neighborInfo := topology.NodeInfo{
+		NodeId:    req.Neighbor.NodeId,
+		IpAddress: req.Neighbor.Address,
+		Zone:      neighborZone,
+	}
+
+	// Check if zones are adjacent before adding
+	if !node.Info.Zone.IsAdjacent(neighborZone) {
+		return &pb.AddNeighborResponse{Success: false}, nil
+	}
+
+	// Add the node to our routing table
+	node.RoutingTable.AddNode(neighborInfo)
+
+	return &pb.AddNeighborResponse{Success: true}, nil
 }
 
 // Helper function to convert Zone to proto message

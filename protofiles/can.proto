@@ -14,6 +14,9 @@ service CANNode {
 
   // Put a key-value pair in the CAN network
   rpc Put(PutRequest) returns (PutResponse);
+
+  // Add a neighbor to the routing table
+  rpc AddNeighbor(AddNeighborRequest) returns (AddNeighborResponse);
 }
 
 
@@ -42,7 +45,7 @@ message JoinRequest {
 
 message JoinResponse {
   Zone assigned_zone = 1; // The zone assigned to the node
-  repeated Node neighbors = 2; // List of neighboring nodes (2*d)
+  repeated Node neighbors = 2; // List of neighboring nodes
   repeated KeyValuePair transferred_data = 3; // Key-value pairs for the assigned zone
 }
 
@@ -61,4 +64,13 @@ message PutRequest {
 }
 
 message PutResponse {
+}
+
+// Request for adding a neighbor
+message AddNeighborRequest {
+  Node neighbor = 1; // The node to add as a neighbor
+}
+
+message AddNeighborResponse {
+  bool success = 1; // Whether the neighbor was added successfully
 }

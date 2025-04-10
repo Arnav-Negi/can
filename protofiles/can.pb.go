@@ -251,7 +251,7 @@ func (x *JoinRequest) GetAddress() string {
 type JoinResponse struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	AssignedZone    *Zone                  `protobuf:"bytes,1,opt,name=assigned_zone,json=assignedZone,proto3" json:"assigned_zone,omitempty"`          // The zone assigned to the node
-	Neighbors       []*Node                `protobuf:"bytes,2,rep,name=neighbors,proto3" json:"neighbors,omitempty"`                                    // List of neighboring nodes (2*d)
+	Neighbors       []*Node                `protobuf:"bytes,2,rep,name=neighbors,proto3" json:"neighbors,omitempty"`                                    // List of neighboring nodes
 	TransferredData []*KeyValuePair        `protobuf:"bytes,3,rep,name=transferred_data,json=transferredData,proto3" json:"transferred_data,omitempty"` // Key-value pairs for the assigned zone
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
@@ -486,6 +486,95 @@ func (*PutResponse) Descriptor() ([]byte, []int) {
 	return file_can_proto_rawDescGZIP(), []int{8}
 }
 
+// Request for adding a neighbor
+type AddNeighborRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Neighbor      *Node                  `protobuf:"bytes,1,opt,name=neighbor,proto3" json:"neighbor,omitempty"` // The node to add as a neighbor
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddNeighborRequest) Reset() {
+	*x = AddNeighborRequest{}
+	mi := &file_can_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddNeighborRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddNeighborRequest) ProtoMessage() {}
+
+func (x *AddNeighborRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddNeighborRequest.ProtoReflect.Descriptor instead.
+func (*AddNeighborRequest) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *AddNeighborRequest) GetNeighbor() *Node {
+	if x != nil {
+		return x.Neighbor
+	}
+	return nil
+}
+
+type AddNeighborResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"` // Whether the neighbor was added successfully
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AddNeighborResponse) Reset() {
+	*x = AddNeighborResponse{}
+	mi := &file_can_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AddNeighborResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AddNeighborResponse) ProtoMessage() {}
+
+func (x *AddNeighborResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AddNeighborResponse.ProtoReflect.Descriptor instead.
+func (*AddNeighborResponse) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *AddNeighborResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_can_proto protoreflect.FileDescriptor
 
 var file_can_proto_rawDesc = string([]byte{
@@ -530,15 +619,26 @@ var file_can_proto_rawDesc = string([]byte{
 	0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x03, 0x6b, 0x65, 0x79, 0x12, 0x14, 0x0a, 0x05, 0x76,
 	0x61, 0x6c, 0x75, 0x65, 0x18, 0x02, 0x20, 0x01, 0x28, 0x0c, 0x52, 0x05, 0x76, 0x61, 0x6c, 0x75,
 	0x65, 0x22, 0x0d, 0x0a, 0x0b, 0x50, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x32, 0x8a, 0x01, 0x0a, 0x07, 0x43, 0x41, 0x4e, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x2b, 0x0a, 0x04,
-	0x4a, 0x6f, 0x69, 0x6e, 0x12, 0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52,
-	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x11, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4a, 0x6f, 0x69,
-	0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x28, 0x0a, 0x03, 0x47, 0x65, 0x74,
-	0x12, 0x0f, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73,
-	0x74, 0x1a, 0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f,
-	0x6e, 0x73, 0x65, 0x12, 0x28, 0x0a, 0x03, 0x50, 0x75, 0x74, 0x12, 0x0f, 0x2e, 0x63, 0x61, 0x6e,
-	0x2e, 0x50, 0x75, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x10, 0x2e, 0x63, 0x61,
-	0x6e, 0x2e, 0x50, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x0e, 0x5a,
+	0x22, 0x3b, 0x0a, 0x12, 0x41, 0x64, 0x64, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x72, 0x52,
+	0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x25, 0x0a, 0x08, 0x6e, 0x65, 0x69, 0x67, 0x68, 0x62,
+	0x6f, 0x72, 0x18, 0x01, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4e,
+	0x6f, 0x64, 0x65, 0x52, 0x08, 0x6e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x72, 0x22, 0x2f, 0x0a,
+	0x13, 0x41, 0x64, 0x64, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x72, 0x52, 0x65, 0x73, 0x70,
+	0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18,
+	0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0xcc,
+	0x01, 0x0a, 0x07, 0x43, 0x41, 0x4e, 0x4e, 0x6f, 0x64, 0x65, 0x12, 0x2b, 0x0a, 0x04, 0x4a, 0x6f,
+	0x69, 0x6e, 0x12, 0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x71,
+	0x75, 0x65, 0x73, 0x74, 0x1a, 0x11, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52,
+	0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x28, 0x0a, 0x03, 0x47, 0x65, 0x74, 0x12, 0x0f,
+	0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a,
+	0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x47, 0x65, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73,
+	0x65, 0x12, 0x28, 0x0a, 0x03, 0x50, 0x75, 0x74, 0x12, 0x0f, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x50,
+	0x75, 0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e,
+	0x50, 0x75, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x40, 0x0a, 0x0b, 0x41,
+	0x64, 0x64, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x72, 0x12, 0x17, 0x2e, 0x63, 0x61, 0x6e,
+	0x2e, 0x41, 0x64, 0x64, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x72, 0x52, 0x65, 0x71, 0x75,
+	0x65, 0x73, 0x74, 0x1a, 0x18, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x41, 0x64, 0x64, 0x4e, 0x65, 0x69,
+	0x67, 0x68, 0x62, 0x6f, 0x72, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x0e, 0x5a,
 	0x0c, 0x2e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x62, 0x06, 0x70,
 	0x72, 0x6f, 0x74, 0x6f, 0x33,
 })
@@ -555,34 +655,39 @@ func file_can_proto_rawDescGZIP() []byte {
 	return file_can_proto_rawDescData
 }
 
-var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 9)
+var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 11)
 var file_can_proto_goTypes = []any{
-	(*Zone)(nil),         // 0: can.Zone
-	(*Node)(nil),         // 1: can.Node
-	(*KeyValuePair)(nil), // 2: can.KeyValuePair
-	(*JoinRequest)(nil),  // 3: can.JoinRequest
-	(*JoinResponse)(nil), // 4: can.JoinResponse
-	(*GetRequest)(nil),   // 5: can.GetRequest
-	(*GetResponse)(nil),  // 6: can.GetResponse
-	(*PutRequest)(nil),   // 7: can.PutRequest
-	(*PutResponse)(nil),  // 8: can.PutResponse
+	(*Zone)(nil),                // 0: can.Zone
+	(*Node)(nil),                // 1: can.Node
+	(*KeyValuePair)(nil),        // 2: can.KeyValuePair
+	(*JoinRequest)(nil),         // 3: can.JoinRequest
+	(*JoinResponse)(nil),        // 4: can.JoinResponse
+	(*GetRequest)(nil),          // 5: can.GetRequest
+	(*GetResponse)(nil),         // 6: can.GetResponse
+	(*PutRequest)(nil),          // 7: can.PutRequest
+	(*PutResponse)(nil),         // 8: can.PutResponse
+	(*AddNeighborRequest)(nil),  // 9: can.AddNeighborRequest
+	(*AddNeighborResponse)(nil), // 10: can.AddNeighborResponse
 }
 var file_can_proto_depIdxs = []int32{
-	0, // 0: can.Node.zone:type_name -> can.Zone
-	0, // 1: can.JoinResponse.assigned_zone:type_name -> can.Zone
-	1, // 2: can.JoinResponse.neighbors:type_name -> can.Node
-	2, // 3: can.JoinResponse.transferred_data:type_name -> can.KeyValuePair
-	3, // 4: can.CANNode.Join:input_type -> can.JoinRequest
-	5, // 5: can.CANNode.Get:input_type -> can.GetRequest
-	7, // 6: can.CANNode.Put:input_type -> can.PutRequest
-	4, // 7: can.CANNode.Join:output_type -> can.JoinResponse
-	6, // 8: can.CANNode.Get:output_type -> can.GetResponse
-	8, // 9: can.CANNode.Put:output_type -> can.PutResponse
-	7, // [7:10] is the sub-list for method output_type
-	4, // [4:7] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	0,  // 0: can.Node.zone:type_name -> can.Zone
+	0,  // 1: can.JoinResponse.assigned_zone:type_name -> can.Zone
+	1,  // 2: can.JoinResponse.neighbors:type_name -> can.Node
+	2,  // 3: can.JoinResponse.transferred_data:type_name -> can.KeyValuePair
+	1,  // 4: can.AddNeighborRequest.neighbor:type_name -> can.Node
+	3,  // 5: can.CANNode.Join:input_type -> can.JoinRequest
+	5,  // 6: can.CANNode.Get:input_type -> can.GetRequest
+	7,  // 7: can.CANNode.Put:input_type -> can.PutRequest
+	9,  // 8: can.CANNode.AddNeighbor:input_type -> can.AddNeighborRequest
+	4,  // 9: can.CANNode.Join:output_type -> can.JoinResponse
+	6,  // 10: can.CANNode.Get:output_type -> can.GetResponse
+	8,  // 11: can.CANNode.Put:output_type -> can.PutResponse
+	10, // 12: can.CANNode.AddNeighbor:output_type -> can.AddNeighborResponse
+	9,  // [9:13] is the sub-list for method output_type
+	5,  // [5:9] is the sub-list for method input_type
+	5,  // [5:5] is the sub-list for extension type_name
+	5,  // [5:5] is the sub-list for extension extendee
+	0,  // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_can_proto_init() }
@@ -596,7 +701,7 @@ func file_can_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_can_proto_rawDesc), len(file_can_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   9,
+			NumMessages:   11,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -10,6 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
+	"log"
 	"math/rand"
 	"sync"
 )
@@ -122,37 +123,72 @@ func (node *Node) updateNeighbors(newZone topology.Zone) []topology.NodeInfo {
 	// Add ourselves as a neighbor to the new node
 	neighbors = append(neighbors, *node.Info)
 
-	// Check all existing neighbors
+	// Find neighbors that are no longer adjacent after zone split
+	nodesToRemove := []string{}
 	for _, neighbor := range node.RoutingTable.Neighbours {
 		// If the neighbor is adjacent to the new zone, add it
 		if newZone.IsAdjacent(neighbor.Zone) {
 			neighbors = append(neighbors, neighbor)
 		}
 
-		// If the neighbor is no longer adjacent to our zone, remove it
+		// If the neighbor is no longer adjacent to our zone, mark for removal
 		if !node.Info.Zone.IsAdjacent(neighbor.Zone) {
-			// Find and remove this neighbor
-			for i, n := range node.RoutingTable.Neighbours {
-				if n.NodeId == neighbor.NodeId {
-					node.RoutingTable.Neighbours = append(
-						node.RoutingTable.Neighbours[:i],
-						node.RoutingTable.Neighbours[i+1:]...,
-					)
-					break
-				}
+			nodesToRemove = append(nodesToRemove, neighbor.NodeId)
+		}
+	}
+
+	// Remove neighbors that are no longer adjacent
+	for _, nodeIdToRemove := range nodesToRemove {
+		for i, n := range node.RoutingTable.Neighbours {
+			if n.NodeId == nodeIdToRemove {
+				node.RoutingTable.Neighbours = append(
+					node.RoutingTable.Neighbours[:i],
+					node.RoutingTable.Neighbours[i+1:]...,
+				)
+				break
 			}
 		}
 	}
 
-	// Add the new node as our neighbor
-	newNodeInfo := topology.NodeInfo{
-		NodeId:    "", // This will be filled by the caller
-		IpAddress: "", // This will be filled by the caller
-		Zone:      newZone,
-	}
-	node.RoutingTable.AddNode(newNodeInfo)
-
 	return neighbors
+}
+
+// NotifyNeighbors notifies all neighbors about this node
+func (node *Node) NotifyNeighbors() error {
+	for _, neighbor := range node.RoutingTable.Neighbours {
+		// Skip notification if the neighbor is ourselves
+		if neighbor.NodeId == node.Info.NodeId {
+			continue
+		}
+
+		// Create connection to neighbor
+		canConn, err := grpc.NewClient(neighbor.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			// Log error but continue with other neighbors
+			log.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
+			continue
+		}
+
+		// Create the client and request
+		canServiceClient := pb.NewCANNodeClient(canConn)
+		nodeProto := &pb.Node{
+			NodeId:  node.Info.NodeId,
+			Address: node.Info.IpAddress,
+			Zone:    zoneToProto(node.Info.Zone),
+		}
+
+		addNeighborRequest := &pb.AddNeighborRequest{
+			Neighbor: nodeProto,
+		}
+
+		// Send the request
+		_, err = canServiceClient.AddNeighbor(context.Background(), addNeighborRequest)
+		if err != nil {
+			log.Printf("Failed to notify neighbor %s: %v", neighbor.NodeId, err)
+			// Continue with other neighbors
+		}
+	}
+	return nil
 }
 
 // JoinImplementation queries bootstrap node and sends a join query
@@ -224,8 +260,11 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 		node.KVStore.Insert(kv.Key, kv.Value)
 	}
 
-	// Inform neighbors about the new node
-	// Skip for now, we'll implement this later if needed
+	// Notify all neighbors about our existence
+	err = node.NotifyNeighbors()
+	if err != nil {
+		log.Printf("Warning: Failed to notify some neighbors: %v", err)
+	}
 
 	return nil
 }

@@ -19,9 +19,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CANNode_Join_FullMethodName = "/can.CANNode/Join"
-	CANNode_Get_FullMethodName  = "/can.CANNode/Get"
-	CANNode_Put_FullMethodName  = "/can.CANNode/Put"
+	CANNode_Join_FullMethodName        = "/can.CANNode/Join"
+	CANNode_Get_FullMethodName         = "/can.CANNode/Get"
+	CANNode_Put_FullMethodName         = "/can.CANNode/Put"
+	CANNode_AddNeighbor_FullMethodName = "/can.CANNode/AddNeighbor"
 )
 
 // CANNodeClient is the client API for CANNode service.
@@ -36,6 +37,8 @@ type CANNodeClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	// Put a key-value pair in the CAN network
 	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
+	// Add a neighbor to the routing table
+	AddNeighbor(ctx context.Context, in *AddNeighborRequest, opts ...grpc.CallOption) (*AddNeighborResponse, error)
 }
 
 type cANNodeClient struct {
@@ -76,6 +79,16 @@ func (c *cANNodeClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.Ca
 	return out, nil
 }
 
+func (c *cANNodeClient) AddNeighbor(ctx context.Context, in *AddNeighborRequest, opts ...grpc.CallOption) (*AddNeighborResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(AddNeighborResponse)
+	err := c.cc.Invoke(ctx, CANNode_AddNeighbor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CANNodeServer is the server API for CANNode service.
 // All implementations must embed UnimplementedCANNodeServer
 // for forward compatibility.
@@ -88,6 +101,8 @@ type CANNodeServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	// Put a key-value pair in the CAN network
 	Put(context.Context, *PutRequest) (*PutResponse, error)
+	// Add a neighbor to the routing table
+	AddNeighbor(context.Context, *AddNeighborRequest) (*AddNeighborResponse, error)
 	mustEmbedUnimplementedCANNodeServer()
 }
 
@@ -106,6 +121,9 @@ func (UnimplementedCANNodeServer) Get(context.Context, *GetRequest) (*GetRespons
 }
 func (UnimplementedCANNodeServer) Put(context.Context, *PutRequest) (*PutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
+}
+func (UnimplementedCANNodeServer) AddNeighbor(context.Context, *AddNeighborRequest) (*AddNeighborResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AddNeighbor not implemented")
 }
 func (UnimplementedCANNodeServer) mustEmbedUnimplementedCANNodeServer() {}
 func (UnimplementedCANNodeServer) testEmbeddedByValue()                 {}
@@ -182,6 +200,24 @@ func _CANNode_Put_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CANNode_AddNeighbor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AddNeighborRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CANNodeServer).AddNeighbor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CANNode_AddNeighbor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CANNodeServer).AddNeighbor(ctx, req.(*AddNeighborRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CANNode_ServiceDesc is the grpc.ServiceDesc for CANNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -200,6 +236,10 @@ var CANNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Put",
 			Handler:    _CANNode_Put_Handler,
+		},
+		{
+			MethodName: "AddNeighbor",
+			Handler:    _CANNode_AddNeighbor_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
