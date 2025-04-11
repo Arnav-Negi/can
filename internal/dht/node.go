@@ -306,9 +306,12 @@ func (node *Node) PutImplementation(key string, value []byte) error {
 			continue
 		}
 		canServiceClient := pb.NewCANNodeClient(canConn)
-		_, err = canServiceClient.Put(context.Background(), storeRequest)
+		putResponse, err := canServiceClient.Put(context.Background(), storeRequest)
 		if err != nil {
 			continue
+		}
+		if putResponse.Success == false {
+			return status.Errorf(codes.Internal, "Failed to store key-value pair")
 		}
 		return nil
 	}

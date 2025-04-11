@@ -64,6 +64,7 @@ message PutRequest {
 }
 
 message PutResponse {
+  bool success = 1; // Whether the key-value pair was stored successfully
 }
 
 // Request for adding a neighbor

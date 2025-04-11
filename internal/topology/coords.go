@@ -68,7 +68,7 @@ func (z Zone) Distance(coords []float32) float32 {
 		// (We assume that the zone does not wrap around. In many CAN implementations,
 		// zones are kept contiguous and do not cross the domain boundary.
 		// If zones can cross boundaries, you'll need extra logic here.)
-		if point >= zmin && point <= zmax {
+		if point >= zmin && point < zmax {
 			// No distance if inside the zone.
 			continue
 		}

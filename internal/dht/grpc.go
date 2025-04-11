@@ -138,8 +138,17 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 }
 
 func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Get not implemented")
+	value, err := node.GetImplementation(req.Key)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetResponse{Value: value}, nil
 }
+
 func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
+	err := node.PutImplementation(req.Key, req.Value)
+	if err != nil {
+		return &pb.PutResponse{Success: false}, err
+	}
+	return &pb.PutResponse{Success: true}, nil
 }
