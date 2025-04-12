@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package can;
+
+option go_package = "./protofiles";
+
+// BootstrapService provides the ability to discover nodes in the network
+service BootstrapService {
+  // JoinInfo returns a list of active nodes in the network
+  rpc JoinInfo(JoinInfoRequest) returns (JoinInfoResponse);
+}
+
+// JoinInfoRequest contains information about a node in the network
+message JoinInfoRequest {
+  // Address where the node can be reached
+  string address = 1;
+}
+
+// JoinInfoResponse contains a list of active nodes in the network
+message JoinInfoResponse {
+  uint32 dimensions = 1;
+  string node_id = 2;
+  repeated string active_nodes = 3; // IP Addresses of active nodes
+}

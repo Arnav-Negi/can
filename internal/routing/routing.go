@@ -1,37 +1,43 @@
 package routing
 
-type Neighbour struct {
-	Coordinates []uint32 // d-dimensional toroidal coord space
-	Address   string   // Address of the neighbour -> Replace with Client conn maybe [TODODODODO]
+import (
+	"github.com/Arnav-Negi/can/internal/topology"
+	"github.com/Arnav-Negi/can/internal/utils"
+	"sort"
+)
+
+type RoutingTable struct {
+	Dimensions   uint
+	HashFunction MultiHash
+	Neighbours   []topology.NodeInfo
 }
 
-type RoutingTable[K comparable] struct {
-	Dimensions 	uint
-	
-	Hashers 	[]Hasher[K]
-	Neighbours 	[]Neighbour
+func NewRoutingTable(dimensions uint) *RoutingTable {
+	return &RoutingTable{
+		Dimensions:   dimensions,
+		HashFunction: *NewMultiHash(int(dimensions)),
+		Neighbours:   []topology.NodeInfo{},
+	}
 }
 
-func NewRoutingTable[K comparable](dimensions uint) *RoutingTable[K] {
-	// Create a new hasher for each dimension
-	hashers := make([]Hasher[K], dimensions)
-	for i := uint(0); i < dimensions; i++ {
-		hashers[i] = *NewHasher[K]()
-	}
+func (rt *RoutingTable) AddNode(nodeInfo topology.NodeInfo) {
+	rt.Neighbours = append(rt.Neighbours, nodeInfo)
+}
 
-	// Make a new neighbour in each direction
-	// initialize with empty coordinates
-	neighbours := make([]Neighbour, dimensions)
-	for i := uint(0); i < dimensions; i++ {
-		neighbours[i] = Neighbour{
-			Coordinates: make([]uint32, dimensions),
-			Address:     "",
-		}
+// GetNodesSorted Sort the neighbours based on their distance to the given coordinates
+func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topology.NodeInfo {
+	utils.Assert(len(coords) == int(rt.Dimensions), "Coordinates length must match dimensions")
+	utils.Assert(len(rt.Neighbours) > 0, "No neighbours to sort")
+	sortedNeighbors := rt.Neighbours
+	sort.Slice(sortedNeighbors, func(i, j int) bool {
+		node1 := sortedNeighbors[i]
+		node2 := sortedNeighbors[j]
+		distance1 := node1.Zone.Distance(coords)
+		distance2 := node2.Zone.Distance(coords)
+		return distance1 < distance2
+	})
+	if numNodes > len(sortedNeighbors) {
+		numNodes = len(sortedNeighbors)
 	}
-
-	return &RoutingTable[K]{
-		Dimensions: dimensions,
-		Hashers:   hashers,
-		Neighbours: neighbours,
-	}
+	return sortedNeighbors[:numNodes]
 }

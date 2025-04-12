@@ -1,0 +1,154 @@
+package dht
+
+import (
+	"context"
+	"fmt"
+	"github.com/Arnav-Negi/can/internal/topology"
+	"github.com/Arnav-Negi/can/internal/utils"
+	pb "github.com/Arnav-Negi/can/protofiles"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+	"log"
+	"net"
+)
+
+func (node *Node) StartGRPCServer(port int) error {
+	ip, err := utils.GetIPAddress()
+	if err != nil {
+		return fmt.Errorf("failed to get IP address: %v", err)
+	}
+
+	// Start the gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
+
+	// extract IP address from the listener
+	node.IPAddress = lis.Addr().String()
+
+	if err != nil {
+		return fmt.Errorf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterCANNodeServer(s, node)
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
+	}
+	return nil
+}
+
+func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse, error) {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	// Check if coordinates are in this node's zone
+	coords := req.Coordinates
+	if !node.Info.Zone.Contains(coords) {
+		// Forward to the closest neighbor
+		closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+		for _, closestNode := range closestNodes {
+			canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			if err != nil {
+				continue
+			}
+			canServiceClient := pb.NewCANNodeClient(canConn)
+			joinResponse, err := canServiceClient.Join(context.Background(), req)
+			if err == nil {
+				return joinResponse, nil
+			}
+		}
+		return nil, status.Errorf(codes.Unavailable, "Could not forward join request")
+	}
+
+	// Split the zone and transfer data
+	newZone, transferredData, err := node.splitZone(coords)
+	if err != nil {
+		return nil, err
+	}
+
+	// Update neighbors - pass the new node's ID and address
+	neighbors := node.updateNeighbors(newZone)
+
+	// Create response
+	pbNeighbors := make([]*pb.Node, 0, len(neighbors))
+	for _, neighbor := range neighbors {
+		pbNeighbors = append(pbNeighbors, &pb.Node{
+			NodeId:  neighbor.NodeId,
+			Address: neighbor.IpAddress,
+			Zone:    zoneToProto(neighbor.Zone),
+		})
+	}
+
+	pbKeyValuePairs := make([]*pb.KeyValuePair, 0, len(transferredData))
+	for key, value := range transferredData {
+		pbKeyValuePairs = append(pbKeyValuePairs, &pb.KeyValuePair{
+			Key:   key,
+			Value: value,
+		})
+	}
+
+	// Log the join event
+	log.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
+	log.Printf("Updated neighbors: %v", pbNeighbors)
+	log.Printf("Current zone: %v", node.Info.Zone)
+
+	return &pb.JoinResponse{
+		AssignedZone:    zoneToProto(newZone),
+		Neighbors:       pbNeighbors,
+		TransferredData: pbKeyValuePairs,
+	}, nil
+}
+
+// AddNeighbor handles requests to add a node as a neighbor
+func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (*pb.AddNeighborResponse, error) {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	if req.Neighbor == nil {
+		return &pb.AddNeighborResponse{Success: false}, status.Errorf(codes.InvalidArgument, "Neighbor information is missing")
+	}
+
+	// Convert proto node to topology node
+	neighborZone := topology.NewZoneFromProto(req.Neighbor.Zone)
+	neighborInfo := topology.NodeInfo{
+		NodeId:    req.Neighbor.NodeId,
+		IpAddress: req.Neighbor.Address,
+		Zone:      neighborZone,
+	}
+
+	// Check if zones are adjacent before adding
+	if !node.Info.Zone.IsAdjacent(neighborZone) {
+		return &pb.AddNeighborResponse{Success: false}, nil
+	}
+
+	// Add the node to our routing table
+	node.RoutingTable.AddNode(neighborInfo)
+
+	log.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+
+	return &pb.AddNeighborResponse{Success: true}, nil
+}
+
+// Helper function to convert Zone to proto message
+func zoneToProto(zone topology.Zone) *pb.Zone {
+	return &pb.Zone{
+		MinCoordinates: zone.GetCoordMins(),
+		MaxCoordinates: zone.GetCoordMaxs(),
+	}
+}
+
+func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
+	value, err := node.GetImplementation(req.Key)
+	if err != nil {
+		return nil, err
+	}
+	return &pb.GetResponse{Value: value}, nil
+}
+
+func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
+	err := node.PutImplementation(req.Key, req.Value)
+	if err != nil {
+		return &pb.PutResponse{Success: false}, err
+	}
+	return &pb.PutResponse{Success: true}, nil
+}

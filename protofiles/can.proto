@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+package can;
+
+option go_package = "./protofiles";
+
+// Define the CAN Node Service
+service CANNode {
+  // Join the CAN network
+  rpc Join(JoinRequest) returns (JoinResponse);
+
+  // Get a key in the CAN network
+  rpc Get(GetRequest) returns (GetResponse);
+
+  // Put a key-value pair in the CAN network
+  rpc Put(PutRequest) returns (PutResponse);
+
+  // Add a neighbor to the routing table
+  rpc AddNeighbor(AddNeighborRequest) returns (AddNeighborResponse);
+}
+
+
+// meta types Zone, Node and KeyValuePair
+message Zone {
+  repeated float minCoordinates = 1; // coordinates of the zone (d)
+  repeated float maxCoordinates = 2; // coordinates of the zone (d)
+}
+message Node {
+  string node_id = 1; // Unique identifier for the node
+  string address = 2; // IP:Port of the node
+  Zone zone = 3; // The zone assigned to the node
+}
+message KeyValuePair {
+  string key = 1;
+  bytes value = 2;
+}
+
+// Request for joining the CAN network
+message JoinRequest {
+  // coordinates of the zone to be split - should be exactly d floats
+  repeated float coordinates = 1;
+  string node_id = 2; // Unique identifier for the node
+  string address = 3; // IP:Port of the node
+}
+
+message JoinResponse {
+  Zone assigned_zone = 1; // The zone assigned to the node
+  repeated Node neighbors = 2; // List of neighboring nodes
+  repeated KeyValuePair transferred_data = 3; // Key-value pairs for the assigned zone
+}
+
+// Request for looking up a key
+message GetRequest {
+  string key = 1;
+}
+message GetResponse {
+  bytes value = 1;
+}
+
+// Request for storing a key-value pair
+message PutRequest {
+  string key = 1;
+  bytes value = 2;
+}
+
+message PutResponse {
+  bool success = 1; // Whether the key-value pair was stored successfully
+}
+
+// Request for adding a neighbor
+message AddNeighborRequest {
+  Node neighbor = 1; // The node to add as a neighbor
+}
+
+message AddNeighborResponse {
+  bool success = 1; // Whether the neighbor was added successfully
+}
