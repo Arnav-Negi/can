@@ -2,6 +2,11 @@ package dht
 
 import (
 	"context"
+	"log"
+	"math/rand"
+	"sync"
+
+	"github.com/Arnav-Negi/can/internal/cache"
 	"github.com/Arnav-Negi/can/internal/routing"
 	"github.com/Arnav-Negi/can/internal/store"
 	"github.com/Arnav-Negi/can/internal/topology"
@@ -10,9 +15,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"log"
-	"math/rand"
-	"sync"
 )
 
 type Node struct {
@@ -21,6 +23,7 @@ type Node struct {
 	Info         *topology.NodeInfo
 	KVStore      *store.MemoryStore
 	RoutingTable *routing.RoutingTable
+	QueryCache   *cache.Cache
 	mu           sync.RWMutex
 }
 
@@ -31,6 +34,7 @@ func NewNode() *Node {
 	return &Node{
 		IPAddress:    ipAddress,
 		KVStore:      store.NewMemoryStore(),
+		QueryCache:   cache.NewCache(128), // TODO: Make this configurable
 		RoutingTable: nil,
 	}
 }
@@ -337,6 +341,12 @@ func (node *Node) GetImplementation(key string) ([]byte, error) {
 		return value, nil
 	}
 
+	// Before routing, check if the key is in the cache
+	if cachedValue, found := node.QueryCache.Cache.Get(key); found {
+		// If found in cache, return the cached value
+		return cachedValue, nil
+	}
+
 	// Need to route
 	// Get IPs sorted by distance
 	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
@@ -356,6 +366,10 @@ func (node *Node) GetImplementation(key string) ([]byte, error) {
 		canServiceClient := pb.NewCANNodeClient(canConn)
 		getResponse, err := canServiceClient.Get(context.Background(), getRequest)
 		if err == nil {
+			// Store the value in the cache
+			node.QueryCache.Cache.Add(key, getResponse.Value)
+
+			// See off the value
 			return getResponse.Value, nil
 		}
 	}
