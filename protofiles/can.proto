@@ -28,7 +28,7 @@ message Zone {
 message Node {
   string node_id = 1; // Unique identifier for the node
   string address = 2; // IP:Port of the node
-  Zone zone = 3; // The zone assigned to the node
+  Zone zone = 3;      // The zone assigned to the node
 }
 message KeyValuePair {
   string key = 1;
@@ -52,6 +52,7 @@ message JoinResponse {
 // Request for looking up a key
 message GetRequest {
   string key = 1;
+  int32 hash_to_use = 2;
 }
 message GetResponse {
   bytes value = 1;
@@ -61,6 +62,7 @@ message GetResponse {
 message PutRequest {
   string key = 1;
   bytes value = 2;
+  int32 hash_to_use = 3; // Hash function to use for the key
 }
 
 message PutResponse {

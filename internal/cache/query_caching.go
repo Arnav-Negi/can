@@ -2,26 +2,21 @@ package cache
 
 import (
 	"fmt"
-	"log"
+	"time"
 
-	"github.com/hashicorp/golang-lru/v2"
+	lru "github.com/hashicorp/golang-lru/v2/expirable"
 )
 
 type Cache struct {
-	Cache *lru.Cache[string, []byte]
+	Cache *lru.LRU[string, []byte]
 }
 
 func evictionLogger(key string, value []byte) {
 	fmt.Printf("Evicted key: %s, value: %x\n from the cache", key, value)
 }
 
-func NewCache(size int) *Cache {
-	cache, err := lru.NewWithEvict[string, []byte](size, evictionLogger)
-	if err != nil {
-		log.Fatalf("Failed to create cache: %v", err)
-		return nil
-	}
+func NewCache(size int, ttl time.Duration) *Cache {
 	return &Cache{
-		Cache: cache,
+		Cache: lru.NewLRU(size, evictionLogger, ttl),
 	}
 }

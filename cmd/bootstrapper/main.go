@@ -15,12 +15,14 @@ import (
 const (
 	defaultPort       = 5000 // Default port for the bootstrap server
 	defaultDimensions = 2    // Default CAN dimensions
+	defaultNumHashes  = 3    // Default number of hash functions
 )
 
 // BootstrapServer implements the BootstrapService gRPC service
 type BootstrapServer struct {
 	pb.UnimplementedBootstrapServiceServer
 	dimensions uint32
+	numHashes  uint32
 
 	// Track active nodes in the network (IP addresses)
 	activeNodes []string
@@ -30,9 +32,10 @@ type BootstrapServer struct {
 }
 
 // NewBootstrapServer creates a new bootstrap server
-func NewBootstrapServer(dimensions uint32) *BootstrapServer {
+func NewBootstrapServer(dimensions uint32, numHashes uint32) *BootstrapServer {
 	return &BootstrapServer{
 		dimensions:  dimensions,
+		numHashes:   numHashes,
 		activeNodes: make([]string, 0),
 		mu:          sync.RWMutex{},
 	}
@@ -45,8 +48,9 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 	// Create a response with the CAN network dimensions, server's node ID,
 	// and the list of active nodes
 	response := &pb.JoinInfoResponse{
-		NodeId:      uuid.New().String(),
 		Dimensions:  s.dimensions,
+		NumHashes:   s.numHashes,
+		NodeId:      uuid.New().String(),
 		ActiveNodes: s.getActiveNodes(),
 	}
 
@@ -89,6 +93,7 @@ func main() {
 	// Parse command line arguments
 	port := flag.Int("port", defaultPort, "Server port")
 	dimensions := flag.Uint("dim", defaultDimensions, "CAN dimensions")
+	numHashes := flag.Uint("num_hashes", defaultNumHashes, "Number of hash functions")
 	flag.Parse()
 
 	if *dimensions <= 0 {
@@ -105,7 +110,7 @@ func main() {
 	grpcServer := grpc.NewServer()
 
 	// Create and register the bootstrap server
-	server := NewBootstrapServer(uint32(*dimensions))
+	server := NewBootstrapServer(uint32(*dimensions), uint32(*numHashes))
 	pb.RegisterBootstrapServiceServer(grpcServer, server)
 
 	log.Printf("Bootstrap server started on port %d", *port)

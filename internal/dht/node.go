@@ -5,6 +5,7 @@ import (
 	"log"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/Arnav-Negi/can/internal/cache"
 	"github.com/Arnav-Negi/can/internal/routing"
@@ -34,8 +35,8 @@ func NewNode() *Node {
 	return &Node{
 		IPAddress:    ipAddress,
 		KVStore:      store.NewMemoryStore(),
-		QueryCache:   cache.NewCache(128), // TODO: Make this configurable
-		RoutingTable: nil,
+		QueryCache:   cache.NewCache(128, 10 * time.Second), // TODO: Make this configurable
+		RoutingTable: nil, 
 	}
 }
 
@@ -101,12 +102,22 @@ func (node *Node) splitZone(coords []float32) (topology.Zone, map[string][]byte,
 	keysToRemove := []string{}
 
 	node.KVStore.ForEach(func(key string, value []byte) {
-		// Calculate coordinates for the key
-		keyCoords := node.RoutingTable.HashFunction.GetCoordinates(key)
+		toRemove := true 
+		for i := 0; i < int(node.RoutingTable.NumHashes); i++ {
+			// Calculate coordinates for the key
+			keyCoords := node.RoutingTable.HashFunctions[i].GetCoordinates(key)
+	
+			// Check if the key belongs to the new zone
+			if newZone.Contains(keyCoords) {
+				transferredData[key] = value
+			} else {
+				toRemove = false
+			}
+		}
 
-		// Check if the key belongs to the new zone
-		if newZone.Contains(keyCoords) {
-			transferredData[key] = value
+		// If the key belongs to current node in ANY hash 
+		// function - Keep it, otherwise remove it
+		if toRemove {
 			keysToRemove = append(keysToRemove, key)
 		}
 	})
@@ -215,9 +226,10 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	dims := uint(joinInfo.Dimensions)
+	numHashes := uint(joinInfo.NumHashes)
 
 	// Initialise node info
-	node.RoutingTable = routing.NewRoutingTable(dims)
+	node.RoutingTable = routing.NewRoutingTable(dims, numHashes)
 	node.Info = &topology.NodeInfo{
 		NodeId:    joinInfo.NodeId,
 		IpAddress: node.IPAddress,
@@ -278,45 +290,80 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 // PutImplementation This function is used to store a value in the DHT.
 // Overwrites the value if the key already exists.
-func (node *Node) PutImplementation(key string, value []byte) error {
-	node.mu.Lock()
-	defer node.mu.Unlock()
-
-	// Find coordinates for the key
-	coords := node.RoutingTable.HashFunction.GetCoordinates(key)
-
-	// If in zone, store it locally
-	if node.Info.Zone.Contains(coords) {
-		// Store the key-value pair in the local store
-		node.KVStore.Insert(key, value)
-		return nil
-	}
-
-	// Need to route
-	// Get IPs sorted by distance
-	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
-	if len(closestNodes) == 0 {
-		return status.Errorf(codes.NotFound, "No nodes found in the routing table")
-	}
-
-	// Send the store request to the closest node
-	storeRequest := &pb.PutRequest{
-		Key:   key,
-		Value: value,
-	}
-	for _, closestNode := range closestNodes {
-		canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			continue
+func (node *Node) PutImplementation(key string, value []byte, hashToUse int) error {
+	// We must send on every hash function
+	// Since the PUT needs to succeed everywhere
+	// TODO : 2PC + Timeout needed later
+	
+	// Let's query on every hash function
+	var wg sync.WaitGroup
+	
+	// If the hashToUse is nil, then send on all
+	// Else send on that given hash to use only
+	node.mu.RLock() // -> To store the error (each can send 1)
+	tryList := make([]int, 0)
+	if hashToUse == -1 {
+		// Send on all
+		tryList = make([]int, node.RoutingTable.NumHashes)
+		for i := 0; i < int(node.RoutingTable.NumHashes); i++ {
+			tryList[i] = i
 		}
-		canServiceClient := pb.NewCANNodeClient(canConn)
-		putResponse, err := canServiceClient.Put(context.Background(), storeRequest)
-		if err != nil {
-			continue
-		}
-		if putResponse.Success == false {
-			return status.Errorf(codes.Internal, "Failed to store key-value pair")
-		}
+	} else {
+		// Send on that only
+		tryList = append(tryList, hashToUse)
+	}
+	node.mu.RUnlock()
+
+	// Try on the hash functions
+	successChan := make(chan struct{}, len(tryList)) // Buffered so all goroutines can write without blocking
+	for _, i := range tryList {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+
+			// Find coordinates for the key
+			coords := node.RoutingTable.HashFunctions[i].GetCoordinates(key)
+
+			// If in zone, store it locally -> NO ROUTING NEEDED
+			if node.Info.Zone.Contains(coords) {
+				node.KVStore.Insert(key, value)
+				successChan <- struct{}{} // Signal success
+				return
+			}
+
+			// ROUTING NEEDED
+			// Get IPs sorted by distance
+			closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+			if len(closestNodes) == 0 {
+				return //status.Errorf(codes.NotFound, "No nodes found in the routing table")
+			}
+
+			// Send the store request to the closest node
+			for _, closestNode := range closestNodes {
+				canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					continue
+				}
+				canServiceClient := pb.NewCANNodeClient(canConn)
+				putResponse, err := canServiceClient.Put(context.Background(), &pb.PutRequest{
+					Key:   key,
+					Value: value,
+					HashToUse: int32(i),
+				})
+				if err != nil  || !putResponse.Success {
+					continue
+				}
+				successChan <- struct{}{} // Signal success
+				return
+			}
+		
+		}(i)
+	}
+	wg.Wait()
+
+	close(successChan)
+	if len(successChan) > 0 { // TODO: ONLY 1 PUT NEEDED, change to 2PC/quorum later
+		node.QueryCache.Cache.Add(key, value) // Cache the value
 		return nil
 	}
 	return status.Errorf(codes.Unavailable, "DHT is unavailable")
@@ -324,54 +371,116 @@ func (node *Node) PutImplementation(key string, value []byte) error {
 
 // GetImplementation This function is used to retrieve a value from the DHT.
 // Error if the key does not exist or unable to retrieve the value.
-func (node *Node) GetImplementation(key string) ([]byte, error) {
-	node.mu.RLock()
-	defer node.mu.RUnlock()
-
-	// Find coordinates for the key
-	coords := node.RoutingTable.HashFunction.GetCoordinates(key)
-
-	// If in zone, retrieve it locally
-	if node.Info.Zone.Contains(coords) {
-		// Retrieve the key-value pair from the local store
-		value, err := node.KVStore.Retrieve(key)
-		if err != nil {
-			return nil, status.Errorf(codes.NotFound, "Key not found")
-		}
-		return value, nil
-	}
-
-	// Before routing, check if the key is in the cache
+func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
+	// Before anything, check if the key is in the cache
+	// If found in cache, return the cached value
 	if cachedValue, found := node.QueryCache.Cache.Get(key); found {
-		// If found in cache, return the cached value
+		log.Println("Cache hit for key:", key)
 		return cachedValue, nil
 	}
 
-	// Need to route
-	// Get IPs sorted by distance
-	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
-	if len(closestNodes) == 0 {
-		return nil, status.Errorf(codes.NotFound, "No nodes found in the routing table")
+	var wg sync.WaitGroup // -> To clean up goroutines
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel() // -> Cancel the context when done
+
+	// Let's query on every hash function
+	resultChan := make(chan []byte, 1) // -> To store the result (only 1 needed)
+	
+	// If the hashToUse is nil, then send on all
+	// Else send on that given hash to use only
+	node.mu.RLock() // -> To store the error (each can send 1)
+	errorChan := make(chan error, node.RoutingTable.NumHashes)
+	tryList := make([]int, 0)
+	if hashToUse == -1 {
+		// Send on all
+		tryList = make([]int, node.RoutingTable.NumHashes)
+		for i := 0; i < int(node.RoutingTable.NumHashes); i++ {
+			tryList[i] = i
+		}
+	} else {
+		// Send on that only
+		tryList = append(tryList, hashToUse)
+	}
+	node.mu.RUnlock()
+
+	// Try on the hash functions
+	for _, i := range tryList {
+		wg.Add(1)
+		go func(i int) {
+			defer wg.Done()
+
+			// Find coordinates for the key
+			coords := node.RoutingTable.HashFunctions[i].GetCoordinates(key)
+		
+			// If in zone, retrieve it locally -> NO ROUTING NEEDED
+			if node.Info.Zone.Contains(coords) {
+				value, err := node.KVStore.Retrieve(key)
+				if err != nil {
+					// If not found, return an error
+					errorChan <- status.Errorf(codes.NotFound, "Key not found")
+					return
+				} else {
+					select {
+					case resultChan <- value:
+						// Successfully sent the value to the channel
+						// Cancel the context to stop other goroutines
+						cancel()
+					case <-ctx.Done():
+						// Context is done, exit the goroutine
+					}
+					return
+				}
+			}
+
+			// ROUTING NEEDED
+			// Get IPs sorted by distance
+			closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+			if len(closestNodes) == 0 {
+				errorChan <- status.Errorf(codes.NotFound, "No nodes found in the routing table")
+				return
+			}
+			
+			// Send the get request to the closest node
+			for _, closestNode := range closestNodes {
+				conn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+				if err != nil {
+					continue
+				}
+			
+				canServiceClient := pb.NewCANNodeClient(conn)
+				resp, err := canServiceClient.Get(ctx, &pb.GetRequest{ 
+					Key: key,
+					HashToUse: int32(i),
+				})
+				if err == nil && resp.Value != nil {
+					// See off the value
+					select {
+					case resultChan <- resp.Value:
+						// Successfully sent the value to the channel
+						// Cancel the context to stop other goroutines
+						cancel()
+					case <-ctx.Done():
+						// Context is done, exit the goroutine
+					}
+					return
+				}
+			}
+		}(i)
 	}
 
-	// Send the get request to the closest node
-	getRequest := &pb.GetRequest{
-		Key: key,
+	var result []byte
+	select {
+	case result = <-resultChan:
+		// Successfully retrieved the value
+		// Store the value in the cache
+		node.QueryCache.Cache.Add(key, result)
+	case <- ctx.Done():
+		// Everyone failed
 	}
-	for _, closestNode := range closestNodes {
-		canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
-		if err != nil {
-			continue
-		}
-		canServiceClient := pb.NewCANNodeClient(canConn)
-		getResponse, err := canServiceClient.Get(context.Background(), getRequest)
-		if err == nil {
-			// Store the value in the cache
-			node.QueryCache.Cache.Add(key, getResponse.Value)
+	wg.Wait() // Wait for all goroutines to finish
 
-			// See off the value
-			return getResponse.Value, nil
-		}
+	if result != nil {
+		return result, nil
 	}
-	return nil, status.Errorf(codes.NotFound, "Key not found in DHT")
+	return nil, status.Errorf(codes.NotFound, "Key not found in the DHT")
 }

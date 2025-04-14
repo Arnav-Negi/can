@@ -138,7 +138,7 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 }
 
 func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
-	value, err := node.GetImplementation(req.Key)
+	value, err := node.GetImplementation(req.Key, int(req.HashToUse))
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse,
 }
 
 func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
-	err := node.PutImplementation(req.Key, req.Value)
+	err := node.PutImplementation(req.Key, req.Value, int(req.HashToUse))
 	if err != nil {
 		return &pb.PutResponse{Success: false}, err
 	}
