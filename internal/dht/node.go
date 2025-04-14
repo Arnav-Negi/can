@@ -213,59 +213,55 @@ func (node *Node) NotifyNeighbors() error {
 
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
-	node.mu.Lock()
-	defer node.mu.Unlock()
 	// Query the bootstrap node for info
 	bootstrapConn, err := grpc.NewClient(bootstrapAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 	defer bootstrapConn.Close()
-
 	bootstrapServiceClient := pb.NewBootstrapServiceClient(bootstrapConn)
-	JoinInfoRequest := &pb.JoinInfoRequest{
-		Address: node.IPAddress,
-	}
-	joinInfo, err := bootstrapServiceClient.JoinInfo(context.Background(), JoinInfoRequest)
-	if err != nil {
-		return err
-	}
 
-	dims := uint(joinInfo.Dimensions)
-	numHashes := uint(joinInfo.NumHashes)
+	joinInfo, err := bootstrapServiceClient.JoinInfo(
+		context.Background(),
+		&pb.JoinInfoRequest{
+			Address: node.IPAddress,
+		},
+	)
+	if err != nil { return err }
 
 	// Initialise node info
+	node.mu.Lock()
+	dims := uint(joinInfo.Dimensions)
+	numHashes := uint(joinInfo.NumHashes)
 	node.RoutingTable = routing.NewRoutingTable(dims, numHashes)
 	node.Info = &topology.NodeInfo{
 		NodeId:    joinInfo.NodeId,
 		IpAddress: node.IPAddress,
 		Zone:      topology.NewZone(dims),
 	}
+	node.mu.Unlock()
 
 	// If no CAN nodes in network, take whole zone
-	if len(joinInfo.ActiveNodes) == 0 {
-		return nil
-	}
+	if len(joinInfo.ActiveNodes) == 0 { return nil }
 
 	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
 	randCoords := GetRandomCoordinates(dims) // Joining point P
-	joinRequest := &pb.JoinRequest{
-		Coordinates: randCoords,
-		NodeId:      joinInfo.NodeId,
-		Address:     node.IPAddress,
-	}
-	conn, err := grpc.NewClient(joinInfo.ActiveNodes[randIndex], grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
+	conn, err := node.getClientConn(joinInfo.ActiveNodes[randIndex])
+	if err != nil { return err }
+
 	canServiceClient := pb.NewCANNodeClient(conn)
-	joinResponse, err := canServiceClient.Join(context.Background(), joinRequest)
-	if err != nil {
-		return err
-	}
+	joinResponse, err := canServiceClient.Join(
+		context.Background(),
+		&pb.JoinRequest{
+			Coordinates: randCoords,
+			NodeId:      joinInfo.NodeId,
+			Address:     node.IPAddress,
+		},
+	)
+	if err != nil { return err }
 
 	// use join response to update node info
+	node.mu.Lock()
+	defer node.mu.Unlock()
 	node.Info.Zone = topology.NewZoneFromProto(joinResponse.AssignedZone)
 
 	// assigning neighbours
@@ -283,8 +279,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	// Notify all neighbors about our existence
-	err = node.NotifyNeighbors()
-	if err != nil {
+	if err = node.NotifyNeighbors(); err != nil {
 		log.Printf("Warning: Failed to notify some neighbors: %v", err)
 	}
 

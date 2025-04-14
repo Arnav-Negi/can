@@ -19,6 +19,7 @@ func (node *Node) HeartbeatRoutine() {
 		node.mu.RUnlock()
 
 		for _, neighbour := range neighbours {
+			log.Printf("Sending heartbeat to %s", neighbour.IpAddress)
 			// Get the client connection to the neighbour
 			conn, err := node.getClientConn(neighbour.IpAddress)
 			if err != nil {
@@ -63,6 +64,7 @@ func (node *Node) CleanupStaleConnections() {
 		if time.Since(lastHeartbeat) > 10*time.Second { // TODO : Make this configurable
 			delete(node.conns, address)
 			delete(node.lastHeartbeat, address)
+			node.RoutingTable.RemoveNeighbor(address)
 			log.Printf("Removed stale connection to %s", address)
 		}
 	}

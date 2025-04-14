@@ -60,3 +60,15 @@ func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topolog
 	}
 	return sortedNeighbors[:numNodes]
 }
+
+func (rt *RoutingTable) RemoveNeighbor(ip string) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
+	for i, node := range rt.Neighbours {
+		if node.IpAddress == ip {
+			rt.Neighbours = append(rt.Neighbours[:i], rt.Neighbours[i+1:]...)
+			break
+		}
+	}
+}

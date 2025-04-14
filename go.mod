@@ -3,6 +3,7 @@ module github.com/Arnav-Negi/can
 go 1.23.5
 
 require (
+	github.com/chzyer/readline v1.5.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-sqlite3 v1.14.24

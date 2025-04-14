@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bufio"
 	"flag"
 	"fmt"
-	"os"
+	"log"
 	"strings"
 	"time"
 
 	"github.com/Arnav-Negi/can"
+	"github.com/chzyer/readline"
 )
 
 var (
@@ -20,9 +20,8 @@ func main() {
 	flag.Parse()
 	fmt.Println("Starting CAN DHT...")
 
-	dht := can.NewDHT()
-
 	// DHT must be started in a goroutine before making any calls to it
+	dht := can.NewDHT()
 	go dht.StartNode(*port)
 
 	// TODO: Replace with synchronization structure like ctx
@@ -34,19 +33,35 @@ func main() {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
-
+	
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 
 	// Start Heartbeat routine
 	go dht.Node.HeartbeatRoutine()
 
-	// CLI for interacting with the DHT
-	var command string
-	reader := bufio.NewReader(os.Stdin)
+	// Initialize readline
+	rl, err := readline.NewEx(&readline.Config{
+		Prompt:          "\033[1;32mCAN-DHT > \033[0m",
+		HistoryFile:     "/tmp/can_dht_history.tmp",
+		InterruptPrompt: "^C",
+		EOFPrompt:       "exit",
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize CLI: %v", err)
+	}
+	defer rl.Close()
+
+	fmt.Println("Welcome to the CAN-DHT CLI")
 	for {
-		fmt.Print("Enter command (put <k> <v>/get <k>/exit): ")
-		command, err = reader.ReadString('\n')
-		command = strings.TrimSpace(command)
+		line, err := rl.Readline()
+		if err != nil { // Ctrl+D or Ctrl+C
+			break
+		}
+
+		command := strings.TrimSpace(line)
+		if command == "" {
+			continue
+		}
 
 		args := strings.Split(command, " ")
 		switch args[0] {
@@ -59,6 +74,8 @@ func main() {
 			err := dht.Put(key, []byte(value))
 			if err != nil {
 				fmt.Println("Error putting value:", err)
+			} else {
+				fmt.Println("Put successful.")
 			}
 		case "get":
 			if len(args) < 2 {
@@ -70,12 +87,20 @@ func main() {
 			if err != nil {
 				fmt.Println("Error getting value:", err)
 			} else {
-				fmt.Println("Value retrieved:", string(value))
+				fmt.Printf("Value retrieved: %s\n", string(value))
 			}
 		case "exit":
+			fmt.Println("Exiting...")
 			return
+		case "help":
+			fmt.Println("Available commands:")
+			fmt.Println("  put <key> <value>  - Store a value in the DHT")
+			fmt.Println("  get <key>         - Retrieve a value from the DHT")
+			fmt.Println("  exit              - Exit the CLI")
+			fmt.Println("  help              - Show this help message")
 		default:
-			fmt.Println("Unknown command: ", command)
+			fmt.Println("Unknown command:", command)
+			fmt.Println("Type 'help' for a list of available commands.")
 		}
 	}
 }
