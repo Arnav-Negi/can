@@ -12,7 +12,7 @@ type Cache struct {
 }
 
 func evictionLogger(key string, value []byte) {
-	fmt.Printf("Evicted key: %s, value: %x\n from the cache", key, value)
+	fmt.Printf("Evicted key: %s, value: %v\n from the cache", key, value)
 }
 
 func NewCache(size int, ttl time.Duration) *Cache {

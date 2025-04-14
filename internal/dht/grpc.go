@@ -152,3 +152,27 @@ func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 	}
 	return &pb.PutResponse{Success: true}, nil
 }
+
+func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {
+	// Check if the connection already exists
+	node.mu.RLock()
+	conn, exists := node.conns[ip]
+	node.mu.RUnlock()
+	if exists {
+		return conn, nil
+	}
+
+	// Create a new connection
+	conn, err := grpc.NewClient(ip, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("Failed to connect to %s: %v", ip, err))
+	}
+
+	// Store the connection in the map
+	node.mu.Lock()
+	node.conns[ip] = conn
+	node.mu.Unlock()
+
+	// Return the connection
+	return conn, nil
+}
