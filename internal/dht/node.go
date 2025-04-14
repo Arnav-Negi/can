@@ -19,14 +19,15 @@ import (
 
 type Node struct {
 	pb.UnimplementedCANNodeServer
-	conns        map[string]*grpc.ClientConn
+	conns        	map[string]*grpc.ClientConn
+	lastHeartbeat	map[string]time.Time
 
-	IPAddress    string
-	Info         *topology.NodeInfo
-	KVStore      *store.MemoryStore
-	RoutingTable *routing.RoutingTable
-	QueryCache   *cache.Cache
-	mu           sync.RWMutex
+	IPAddress     	string
+	Info         	*topology.NodeInfo
+	KVStore      	*store.MemoryStore
+	RoutingTable 	*routing.RoutingTable
+	QueryCache   	*cache.Cache
+	mu           	sync.RWMutex
 }
 
 // NewNode This function initializes a new Node instance.
@@ -34,12 +35,13 @@ func NewNode() *Node {
 	ipAddress := "localhost:0"
 
 	return &Node{
-		IPAddress:    ipAddress,
-		KVStore:      store.NewMemoryStore(),
-		QueryCache:   cache.NewCache(128, 10 * time.Second), // TODO: Make this configurable
-		RoutingTable: nil, 
-		conns:        make(map[string]*grpc.ClientConn),
-		mu: 		 sync.RWMutex{},
+		IPAddress:   	ipAddress,
+		KVStore:      	store.NewMemoryStore(),
+		QueryCache:   	cache.NewCache(128, 10 * time.Second), // TODO: Make this configurable
+		RoutingTable: 	nil, 
+		conns:        	make(map[string]*grpc.ClientConn),
+		lastHeartbeat: 	make(map[string]time.Time),
+		mu: 		  	sync.RWMutex{},
 	}
 }
 
@@ -218,6 +220,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	if err != nil {
 		return err
 	}
+	defer bootstrapConn.Close()
 
 	bootstrapServiceClient := pb.NewBootstrapServiceClient(bootstrapConn)
 	JoinInfoRequest := &pb.JoinInfoRequest{

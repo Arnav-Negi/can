@@ -17,6 +17,9 @@ service CANNode {
 
   // Add a neighbor to the routing table
   rpc AddNeighbor(AddNeighborRequest) returns (AddNeighborResponse);
+
+  // Send Heartbeat
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
 }
 
 
@@ -76,4 +79,12 @@ message AddNeighborRequest {
 
 message AddNeighborResponse {
   bool success = 1; // Whether the neighbor was added successfully
+}
+
+// Request for sending a heartbeat
+message HeartbeatRequest {
+  string address = 1; // IP:Port of the node
+}
+message HeartbeatResponse {
+  bool success = 1; // Whether the heartbeat was acknowledged
 }

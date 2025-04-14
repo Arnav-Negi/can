@@ -4,10 +4,11 @@ import (
 	"bufio"
 	"flag"
 	"fmt"
-	"github.com/Arnav-Negi/can"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/Arnav-Negi/can"
 )
 
 var (
@@ -26,17 +27,18 @@ func main() {
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)
-
 	fmt.Println("Listening on :", dht.Node.IPAddress)
 
 	err := dht.Join(fmt.Sprintf("localhost:%d", *bootstrapPort))
-
 	if err != nil {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
 
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
+
+	// Start Heartbeat routine
+	go dht.Node.HeartbeatRoutine()
 
 	// CLI for interacting with the DHT
 	var command string
