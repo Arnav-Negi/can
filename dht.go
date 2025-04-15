@@ -35,8 +35,7 @@ func (dht *DHT) Join(bootstrapAddr string) error {
 // Leave This function is used to leave the CAN network.
 // It should gracefully leave the network and clean up resources.
 func (dht *DHT) Leave() error {
-	//TODO implement me
-	panic("implement me")
+	return dht.Node.LeaveImplementation()
 }
 
 // Put This function is used to store a value in the DHT.
@@ -44,7 +43,7 @@ func (dht *DHT) Leave() error {
 func (dht *DHT) Put(key string, value []byte) error {
 	return dht.Node.PutImplementation(
 		key, value,
-		-1,  // The hash ID to query, -1 for all
+		-1, // The hash ID to query, -1 for all
 	)
 }
 
@@ -52,7 +51,7 @@ func (dht *DHT) Put(key string, value []byte) error {
 // Error if the key does not exist or unable to retrieve the value.
 func (dht *DHT) Get(key string) ([]byte, error) {
 	return dht.Node.GetImplementation(
-		key, 
-		-1,  // The hash ID to query, -1 for all
+		key,
+		-1, // The hash ID to query, -1 for all
 	)
 }

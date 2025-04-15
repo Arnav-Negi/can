@@ -116,6 +116,8 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 		Zone:      neighborZone,
 	}
 
+	// TODO: Update the RoutingTable.Neighbours by using IsAdjacent and removing all the nodes hat are not adjacent to me anymore
+
 	// Check if zones are adjacent before adding
 	if !node.Info.Zone.IsAdjacent(neighborZone) {
 		return &pb.AddNeighborResponse{Success: false}, nil

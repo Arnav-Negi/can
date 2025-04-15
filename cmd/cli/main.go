@@ -33,7 +33,7 @@ func main() {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
-	
+
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 
 	// Start Heartbeat routine
@@ -93,12 +93,18 @@ func main() {
 			}
 		case "exit":
 			fmt.Println("Exiting...")
-			return
+			err := dht.Leave()
+			if err != nil {
+				fmt.Println("Error leaving DHT:", err)
+			} else {
+				fmt.Println("Left the DHT successfully.")
+				return
+			}
 		case "help":
 			fmt.Println("Available commands:")
 			fmt.Println("  put <key> <value> - Store a value in the DHT")
 			fmt.Println("  get <key>         - Retrieve a value from the DHT")
-			fmt.Println("  exit              - Exit the CLI")
+			fmt.Println("  exit              - Exit the CLI and DHT")
 			fmt.Println("  help              - Show this help message")
 		default:
 			fmt.Println("Unknown command:", command)

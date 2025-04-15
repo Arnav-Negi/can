@@ -67,20 +67,44 @@ func (node *Node) Heartbeat(ctx context.Context, req *pb.HeartbeatRequest) (*pb.
 func (node *Node) CleanupStaleConnections() {
 	node.mu.Lock()
 	dirty := false
+	crashedNodes := make([]struct {
+		id      string
+		address string
+	}, 0)
 
 	// Check for stale connections and remove them
 	for address, lastHeartbeat := range node.lastHeartbeat {
 		if time.Since(lastHeartbeat) > 10*time.Second { // TODO : Make this configurable
+			// Find the nodeId for this address
+			var nodeId string
+			for _, neighbor := range node.RoutingTable.Neighbours {
+				if neighbor.IpAddress == address {
+					nodeId = neighbor.NodeId
+					break
+				}
+			}
+
 			delete(node.conns, address)
 			delete(node.lastHeartbeat, address)
 			node.RoutingTable.RemoveNeighbor(address)
 
-			node.logger.Printf("Removed stale connection to %s", address)
+			if nodeId != "" {
+				crashedNodes = append(crashedNodes, struct {
+					id      string
+					address string
+				}{id: nodeId, address: address})
+			}
 
+			node.logger.Printf("Removed stale connection to %s", address)
 			dirty = true
 		}
 	}
 	node.mu.Unlock()
+
+	// Handle crashed nodes
+	for _, crashed := range crashedNodes {
+		go node.HandleCrashDetection(crashed.id, crashed.address)
+	}
 
 	if dirty {
 		node.NotifyAllNeighboursOfTwoHopInfo()

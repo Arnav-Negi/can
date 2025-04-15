@@ -23,6 +23,20 @@ service CANNode {
 
   // Send neighbour and zone information
   rpc SendNeighbourInfo(NeighbourInfoRequest) returns (NeighbourInfoResponse);
+
+  // Start the leave process
+  rpc InitiateLeave(LeaveRequest) returns (LeaveResponse);
+
+  // Handle the DFS process
+  rpc PerformDFS(DFSRequest) returns (DFSResponse);
+
+  // Handle the takeover process
+  rpc TakeoverZone(TakeoverRequest) returns (TakeoverResponse);
+  rpc TransferData(TransferDataRequest) returns (TransferDataResponse);
+  rpc GetNeighbors(GetNeighborsRequest) returns (GetNeighborsResponse);
+  rpc NotifyZoneMerge(ZoneMergeNotification) returns (ZoneMergeResponse);
+  rpc ElectTakeoverCoordinator(CoordinatorElectionRequest) returns (CoordinatorElectionResponse);
+
 }
 
 
@@ -101,4 +115,77 @@ message NeighbourInfoRequest {
 }
 message NeighbourInfoResponse {
   bool success = 1; // Whether the neighbor information was sent successfully
+}
+
+// New message types
+message LeaveRequest {
+  string leaving_node_id = 1;
+  Zone leaving_zone = 2;
+}
+
+message LeaveResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message DFSRequest {
+  string leaving_node_id = 1;
+  Zone leaving_zone = 2;
+  int32 split_dim = 3;
+}
+
+message DFSResponse {
+  bool found_sibling = 1;
+  string takeover_node_id = 2;
+  string takeover_address = 3;
+  Zone takeover_zone = 4;
+}
+
+message TakeoverRequest {
+  string leaving_node_id = 1;
+  string leaving_node_address = 2;
+  Zone leaving_zone = 3;
+  bool is_graceful = 4;  // Whether this is a graceful leave or a crash
+}
+
+message TakeoverResponse {
+  bool success = 1;
+  string error_message = 2;
+}
+
+message TransferDataRequest {
+  string requesting_node_id = 1;
+}
+
+message TransferDataResponse {
+  repeated KeyValuePair data = 1;
+}
+
+message GetNeighborsRequest {
+  // Empty request
+}
+
+message GetNeighborsResponse {
+  repeated Node neighbors = 1;
+}
+
+message ZoneMergeNotification {
+  string takeover_node_id = 1;
+  Zone old_zone = 2;
+  Zone new_zone = 3;
+  string leaving_node_id = 4;
+}
+
+message ZoneMergeResponse {
+  bool success = 1;
+}
+
+message CoordinatorElectionRequest {
+  string candidate_node_id = 1;
+  float candidate_volume = 2;
+  string crashed_node_id = 3;
+}
+
+message CoordinatorElectionResponse {
+  bool should_be_coordinator = 1;
 }
