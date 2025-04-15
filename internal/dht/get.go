@@ -73,14 +73,6 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 		return cachedValue, nil
 	}
 
-	// ctx is cancelled when notFound or value is returned from some hash
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Different behaviors for each case
-	resultChan := make(chan []byte, 1)
-	notFound := false
-
 	// If the hashToUse is nil, then send on all
 	// Else send on that given hash to use only
 	node.mu.RLock()
@@ -94,6 +86,14 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 		tryList = []int{hashToUse}
 	}
 	node.mu.RUnlock()
+
+	// ctx is cancelled when notFound or value is returned from some hash
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Different behaviors for each case
+	resultChan := make(chan []byte, 1)
+	errChan := make(chan error, len(tryList))
 
 	var wg sync.WaitGroup
 	// Try on the hash functions
@@ -112,25 +112,38 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 				default:
 					return
 				}
-			} else if status.Code(err) == codes.NotFound {
-				notFound = true
 			}
+
+			errChan <- err
 		}(i)
 	}
 	wg.Wait() // Wait for all goroutines to finish
 
 	var result []byte
+	success := true
 	select {
 	case result = <-resultChan:
 		// Successfully retrieved the value
 		// Store the value in the cache
 		node.QueryCache.Cache.Add(key, result)
 	default: // Everyone failed
+		success = false
 	}
 
-	if result != nil {
+	if success {
 		return result, nil
-	} else if notFound {
+	}
+
+	// scan errChan, if all notFound then return notFound (no replicas exist)
+	allNotFound := true
+	for i := 0; i < len(tryList); i++ {
+		err := <-errChan
+		if err != nil && status.Code(err) != codes.NotFound {
+			allNotFound = false
+		}
+	}
+
+	if allNotFound {
 		return nil, status.Errorf(codes.NotFound, "Key not found in the DHT")
 	} else {
 		return nil, status.Errorf(codes.Unavailable, "DHT is unavailable")
