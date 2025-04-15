@@ -162,6 +162,14 @@ func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 	return &pb.PutResponse{Success: true}, nil
 }
 
+func (node *Node) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	err := node.DeleteImplementation(req.Key, int(req.HashToUse))
+	if err != nil { 
+		return &pb.DeleteResponse{Success: false}, err 
+	}
+	return &pb.DeleteResponse{Success: true}, nil
+}
+
 func (node *Node) SendNeighbourInfo(ctx context.Context, req *pb.NeighbourInfoRequest) (*pb.NeighbourInfoResponse, error) {
 	node.mu.Lock()
 	defer node.mu.Unlock()

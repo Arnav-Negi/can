@@ -91,6 +91,18 @@ func main() {
 			} else {
 				fmt.Printf("Value retrieved: %s\n", string(value))
 			}
+		case "delete":
+			if len(args) != 2 {
+				fmt.Println("Usage: delete <key>")
+				continue
+			}
+			key := args[1]
+			err := dht.Delete(key)
+			if err != nil {
+				fmt.Println("Error deleting value:", err)
+			} else {
+				fmt.Println("Delete successful.")
+			}
 		case "exit":
 			fmt.Println("Exiting...")
 			return
@@ -98,10 +110,11 @@ func main() {
 			fmt.Println("Available commands:")
 			fmt.Println("  put <key> <value> - Store a value in the DHT")
 			fmt.Println("  get <key>         - Retrieve a value from the DHT")
+			fmt.Println("  delete <key>      - Delete a value from the DHT")
 			fmt.Println("  exit              - Exit the CLI")
 			fmt.Println("  help              - Show this help message")
 		default:
-			fmt.Println("Unknown command:", command)
+			fmt.Println("Unknown command: ", command)
 			fmt.Println("Type 'help' for a list of available commands.")
 		}
 	}

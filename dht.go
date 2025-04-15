@@ -56,3 +56,12 @@ func (dht *DHT) Get(key string) ([]byte, error) {
 		-1,  // The hash ID to query, -1 for all
 	)
 }
+
+// Delete This function is used to delete a value from the DHT.
+// Error if the key does not exist or unable to delete the value.
+func (dht *DHT) Delete(key string) error {
+	return dht.Node.DeleteImplementation(
+		key, 
+		-1,  // The hash ID to query, -1 for all
+	)
+}
