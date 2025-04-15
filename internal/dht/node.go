@@ -49,11 +49,11 @@ func NewNode() *Node {
 		NeighInfo:     make([]topology.NodeInfo, 0),
 		lastHeartbeat: make(map[string]time.Time),
 		KVStore:       store.NewMemoryStore(),
-		QueryCache:    nil, // TODO: Make this configurable
+		QueryCache:    nil,
 		mu:            sync.RWMutex{},
 		logger:        logrus.New(),
 	}
-	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second)
+	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second) // TODO: Make this configurable
 	return retNode
 }
 
@@ -282,6 +282,10 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
+	// Lock for the entirety of Join
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
 	// Query the bootstrap node for info
 	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
 	if err != nil {
@@ -301,7 +305,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	// Initialise node info
-	node.mu.Lock()
 	dims := uint(joinInfo.Dimensions)
 	numHashes := uint(joinInfo.NumHashes)
 	node.RoutingTable = routing.NewRoutingTable(dims, numHashes)
@@ -310,7 +313,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 		IpAddress: node.IPAddress,
 		Zone:      topology.NewZone(dims),
 	}
-	node.mu.Unlock()
 
 	// Set up logger file and open file with node.logger
 	logFilePath := "./logs/" + node.Info.NodeId + ".log"
@@ -350,8 +352,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	// use join response to update node info
-	node.mu.Lock()
-	defer node.mu.Unlock()
 	node.Info.Zone = topology.NewZoneFromProto(joinResponse.AssignedZone)
 
 	// assigning neighbours

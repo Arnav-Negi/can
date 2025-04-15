@@ -88,7 +88,7 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	}
 
 	// Log the join event
-	node.logger.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
+	node.logger.Printf("Node %s joined the network with zone: %v", req.Address, newZone)
 	node.logger.Printf("Updated neighbors: %v", pbNeighbors)
 	node.logger.Printf("Current zone: %v", node.Info.Zone)
 
