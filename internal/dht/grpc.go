@@ -91,6 +91,7 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	node.logger.Printf("Node %s joined the network with zone: %v", req.Address, newZone)
 	node.logger.Printf("Updated neighbors: %v", pbNeighbors)
 	node.logger.Printf("Current zone: %v", node.Info.Zone)
+	node.logger.Printf("My neighbors: %v", node.RoutingTable.Neighbours)
 
 	return &pb.JoinResponse{
 		AssignedZone:    zoneToProto(newZone),
@@ -116,6 +117,15 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 		Zone:      neighborZone,
 	}
 
+	// Iterate through existing neighbors to check if the node is already present
+	// If present already, remove it
+	for i, n := range node.RoutingTable.Neighbours {
+		if n.IpAddress == req.Neighbor.Address {
+			node.RoutingTable.Neighbours = append(node.RoutingTable.Neighbours[:i], node.RoutingTable.Neighbours[i+1:]...)
+			break
+		}
+	}
+
 	// Check if zones are adjacent before adding
 	if !node.Info.Zone.IsAdjacent(neighborZone) {
 		return &pb.AddNeighborResponse{Success: false}, nil
@@ -124,7 +134,8 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 	// Add the node to our routing table
 	node.RoutingTable.AddNode(neighborInfo)
 
-	node.logger.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+	node.logger.Printf("Added/Updated neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+	node.logger.Printf("Current neighbors: %v", node.RoutingTable.Neighbours)
 
 	return &pb.AddNeighborResponse{Success: true}, nil
 }

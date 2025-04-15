@@ -175,6 +175,11 @@ func (node *Node) updateNeighbors(newZone topology.Zone) []topology.NodeInfo {
 		}
 	}
 
+	// Notify and update the neighbors about our updated zone
+	if err := node.NotifyNeighbors(); err != nil {
+		node.logger.Printf("Warning: Failed to update some neighbors: %v", err)
+	}
+
 	// Remove neighbors that are no longer adjacent
 	for _, nodeIdToRemove := range nodesToRemove {
 		for i, n := range node.RoutingTable.Neighbours {
@@ -282,10 +287,6 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
-	// Lock for the entirety of Join
-	node.mu.Lock()
-	defer node.mu.Unlock()
-
 	// Query the bootstrap node for info
 	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
 	if err != nil {
@@ -307,12 +308,14 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Initialise node info
 	dims := uint(joinInfo.Dimensions)
 	numHashes := uint(joinInfo.NumHashes)
+	node.mu.Lock()
 	node.RoutingTable = routing.NewRoutingTable(dims, numHashes)
 	node.Info = &topology.NodeInfo{
 		NodeId:    joinInfo.NodeId,
 		IpAddress: node.IPAddress,
 		Zone:      topology.NewZone(dims),
 	}
+	node.mu.Unlock()
 
 	// Set up logger file and open file with node.logger
 	logFilePath := "./logs/" + node.Info.NodeId + ".log"
@@ -352,6 +355,8 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	// use join response to update node info
+	node.mu.Lock()
+	defer node.mu.Unlock()
 	node.Info.Zone = topology.NewZoneFromProto(joinResponse.AssignedZone)
 
 	// assigning neighbours
