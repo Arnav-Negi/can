@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"log"
 	"time"
 
 	pb "github.com/Arnav-Negi/can/protofiles"
@@ -15,19 +14,19 @@ func (node *Node) HeartbeatRoutine() {
 
 	for range ticker.C {
 		node.mu.RLock()
-		neighbours := node.RoutingTable.Neighbours 
+		neighbours := node.RoutingTable.Neighbours
 		node.mu.RUnlock()
 
 		for _, neighbour := range neighbours {
-			log.Printf("Sending heartbeat to %s", neighbour.IpAddress)
+			node.logger.Printf("Sending heartbeat to %s", neighbour.IpAddress)
 			// Get the client connection to the neighbour
 			conn, err := node.getClientConn(neighbour.IpAddress)
 			if err != nil {
-				log.Printf("Failed to connect to %s: %v", neighbour.IpAddress, err)
+				node.logger.Printf("Failed to connect to %s: %v", neighbour.IpAddress, err)
 				continue
 			}
 			client := pb.NewCANNodeClient(conn)
-		
+
 			// Send heartbeat request
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			_, err = client.Heartbeat(ctx, &pb.HeartbeatRequest{
@@ -35,7 +34,7 @@ func (node *Node) HeartbeatRoutine() {
 			})
 			cancel()
 			if err != nil {
-				log.Printf("Failed to send heartbeat: %v", err)
+				node.logger.Printf("Failed to send heartbeat: %v", err)
 			}
 		}
 
@@ -65,7 +64,7 @@ func (node *Node) CleanupStaleConnections() {
 			delete(node.conns, address)
 			delete(node.lastHeartbeat, address)
 			node.RoutingTable.RemoveNeighbor(address)
-			log.Printf("Removed stale connection to %s", address)
+			node.logger.Printf("Removed stale connection to %s", address)
 		}
 	}
 }
