@@ -16,10 +16,10 @@ func (node *Node) PutImplementation(key string, value []byte, hashToUse int) err
 	// We must send on every hash function
 	// Since the PUT needs to succeed everywhere
 	// TODO : 2PC + Timeout needed later
-	
+
 	// Let's query on every hash function
 	var wg sync.WaitGroup
-	
+
 	// If the hashToUse is nil, then send on all
 	// Else send on that given hash to use only
 	node.mu.RLock() // -> To store the error (each can send 1)
@@ -54,7 +54,7 @@ func (node *Node) PutImplementation(key string, value []byte, hashToUse int) err
 
 			// ROUTING NEEDED
 			// Get IPs sorted by distance
-			closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+			closestNodes := node.RoutingTable.GetNodesSorted(coords, node.Info.Zone, 3)
 			if len(closestNodes) == 0 {
 				return //status.Errorf(codes.NotFound, "No nodes found in the routing table")
 			}
@@ -62,19 +62,23 @@ func (node *Node) PutImplementation(key string, value []byte, hashToUse int) err
 			// Send the store request to the closest node
 			for _, closestNode := range closestNodes {
 				conn, err := node.getClientConn(closestNode.IpAddress)
-				if err != nil { continue }
+				if err != nil {
+					continue
+				}
 				canServiceClient := pb.NewCANNodeClient(conn)
 
 				putResponse, err := canServiceClient.Put(context.Background(), &pb.PutRequest{
-					Key:   key,
-					Value: value,
+					Key:       key,
+					Value:     value,
 					HashToUse: int32(i),
 				})
-				if err != nil  || !putResponse.Success { continue }
+				if err != nil || !putResponse.Success {
+					continue
+				}
 				successChan <- struct{}{} // Signal success
 				return
 			}
-		
+
 		}(i)
 	}
 	wg.Wait()
@@ -86,4 +90,3 @@ func (node *Node) PutImplementation(key string, value []byte, hashToUse int) err
 	}
 	return status.Errorf(codes.Unavailable, "DHT is unavailable")
 }
-

@@ -26,7 +26,7 @@ func (node *Node) GetHelper(helperCtx context.Context, key string, hashIdx int) 
 
 	// ROUTING NEEDED
 	// Get IPs sorted by distance
-	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+	closestNodes := node.RoutingTable.GetNodesSorted(coords, node.Info.Zone, 3)
 	if len(closestNodes) == 0 {
 		return nil, status.Errorf(codes.Unavailable, "No nodes found in the routing table")
 	}

@@ -9,10 +9,10 @@ import (
 )
 
 type RoutingTable struct {
-	mu 			  sync.RWMutex
+	mu sync.RWMutex
 
 	Dimensions    uint
-	NumHashes	  uint
+	NumHashes     uint
 	HashFunctions []MultiHash
 	Neighbours    []topology.NodeInfo
 }
@@ -40,7 +40,7 @@ func (rt *RoutingTable) AddNode(nodeInfo topology.NodeInfo) {
 }
 
 // GetNodesSorted Sort the neighbours based on their distance to the given coordinates
-func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topology.NodeInfo {
+func (rt *RoutingTable) GetNodesSorted(coords []float32, selZone topology.Zone, numNodes int) []topology.NodeInfo {
 	utils.Assert(len(coords) == int(rt.Dimensions), "Coordinates length must match dimensions")
 	utils.Assert(len(rt.Neighbours) > 0, "No neighbours to sort")
 
@@ -55,9 +55,18 @@ func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topolog
 		distance2 := node2.Zone.Distance(coords)
 		return distance1 < distance2
 	})
+
+	for i := len(sortedNeighbors) - 1; i >= 0; i-- {
+		if sortedNeighbors[i].Zone.Distance(coords) >= selZone.Distance(coords) {
+			sortedNeighbors = sortedNeighbors[:i]
+		}
+	}
+
+	// remove zones farther from coords than selfZone is from coords
 	if numNodes > len(sortedNeighbors) {
 		numNodes = len(sortedNeighbors)
 	}
+
 	return sortedNeighbors[:numNodes]
 }
 

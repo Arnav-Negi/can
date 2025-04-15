@@ -45,7 +45,7 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	coords := req.Coordinates
 	if !node.Info.Zone.Contains(coords) {
 		// Forward to the closest neighbor
-		closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+		closestNodes := node.RoutingTable.GetNodesSorted(coords, node.Info.Zone, 3)
 		for _, closestNode := range closestNodes {
 			canConn, err := node.getGRPCConn(closestNode.IpAddress)
 			if err != nil {
@@ -138,11 +138,11 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 }
 
 // Helper function to convert NodeInfo to proto message
-func NodeInfoToProto (nodeInfo topology.NodeInfo) *pb.Node {
+func NodeInfoToProto(nodeInfo topology.NodeInfo) *pb.Node {
 	return &pb.Node{
-		NodeId: 	nodeInfo.NodeId,
-		Address: 	nodeInfo.IpAddress,
-		Zone:    	zoneToProto(nodeInfo.Zone),
+		NodeId:  nodeInfo.NodeId,
+		Address: nodeInfo.IpAddress,
+		Zone:    zoneToProto(nodeInfo.Zone),
 	}
 }
 
