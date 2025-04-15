@@ -20,15 +20,20 @@ import (
 
 type Node struct {
 	pb.UnimplementedCANNodeServer
-	conns         map[string]*grpc.ClientConn
+
+	conns map[string]*grpc.ClientConn
+
+	IPAddress string
+
+	Info          *topology.NodeInfo
+	RoutingTable  *routing.RoutingTable
+	NeighInfo     []topology.NodeInfo
 	lastHeartbeat map[string]time.Time
 
-	IPAddress    string
-	Info         *topology.NodeInfo
-	KVStore      *store.MemoryStore
-	RoutingTable *routing.RoutingTable
-	QueryCache   *Cache
-	mu           sync.RWMutex
+	KVStore    *store.MemoryStore
+	QueryCache *Cache
+
+	mu sync.RWMutex
 
 	logger *logrus.Logger
 }
@@ -38,15 +43,15 @@ func NewNode() *Node {
 	ipAddress := "localhost:0"
 
 	retNode := &Node{
+		conns:         make(map[string]*grpc.ClientConn),
 		IPAddress:     ipAddress,
+		RoutingTable:  nil,
+		NeighInfo:     make([]topology.NodeInfo, 0),
+		lastHeartbeat: make(map[string]time.Time),
 		KVStore:       store.NewMemoryStore(),
 		QueryCache:    nil, // TODO: Make this configurable
-		RoutingTable:  nil,
-		conns:         make(map[string]*grpc.ClientConn),
-		lastHeartbeat: make(map[string]time.Time),
 		mu:            sync.RWMutex{},
-
-		logger: logrus.New(),
+		logger:        logrus.New(),
 	}
 	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second)
 	return retNode
@@ -222,6 +227,57 @@ func (node *Node) NotifyNeighbors() error {
 		}
 	}
 	return nil
+}
+
+// NotifyAllNeighboursOfTwoHopInfo notifies all neighbours about the 2-hop information
+func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
+	node.mu.RLock()
+	neighbours := node.RoutingTable.Neighbours
+	node.mu.RUnlock()
+
+	var wg sync.WaitGroup
+
+	for _, neighbour := range neighbours {
+		wg.Add(1)
+		go func(nbr topology.NodeInfo) {
+			defer wg.Done()
+
+			conn, err := node.getClientConn(nbr.IpAddress)
+			if err != nil {
+				node.logger.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
+				return
+			}
+			client := pb.NewCANNodeClient(conn)
+
+			node.mu.RLock()
+			// Build zones and neighbour protos while holding read lock
+			zones := make([]*pb.Zone, len(neighbours))
+			protoNeighbours := make([]*pb.Node, len(neighbours))
+			for i, n := range neighbours {
+				zones[i] = zoneToProto(n.Zone)
+				protoNeighbours[i] = NodeInfoToProto(n)
+			}
+			zone := zoneToProto(node.Info.Zone)
+			nodeId := node.Info.NodeId
+			node.mu.RUnlock()
+
+			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+			defer cancel()
+
+			_, err = client.SendNeighbourInfo(ctx, &pb.NeighbourInfoRequest{
+				NodeId:     nodeId,
+				Zone:       zone,
+				Neighbours: protoNeighbours,
+				Zones:      zones,
+			})
+			if err != nil {
+				node.logger.Printf("Failed to send neighbour info to %s: %v", nbr.IpAddress, err)
+			}
+		}(neighbour)
+	}
+
+	wg.Wait()
+	node.logger.Printf("Updated 2-hop neighbours for all nodes")
 }
 
 // JoinImplementation queries bootstrap node and sends a join query

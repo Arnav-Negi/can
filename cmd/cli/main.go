@@ -52,6 +52,8 @@ func main() {
 	defer rl.Close()
 
 	fmt.Println("Welcome to the CAN-DHT CLI")
+	fmt.Println("Type 'help' for a list of available commands.")
+	fmt.Println("Type 'exit' to quit the CLI.")
 	for {
 		line, err := rl.Readline()
 		if err != nil { // Ctrl+D or Ctrl+C
@@ -94,7 +96,7 @@ func main() {
 			return
 		case "help":
 			fmt.Println("Available commands:")
-			fmt.Println("  put <key> <value>  - Store a value in the DHT")
+			fmt.Println("  put <key> <value> - Store a value in the DHT")
 			fmt.Println("  get <key>         - Retrieve a value from the DHT")
 			fmt.Println("  exit              - Exit the CLI")
 			fmt.Println("  help              - Show this help message")

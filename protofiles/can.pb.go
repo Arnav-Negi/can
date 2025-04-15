@@ -688,6 +688,119 @@ func (x *HeartbeatResponse) GetSuccess() bool {
 	return false
 }
 
+// Request for sending neighbor and zone information
+type NeighbourInfoRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	NodeId        string                 `protobuf:"bytes,1,opt,name=node_id,json=nodeId,proto3" json:"node_id,omitempty"` // Unique identifier for the node
+	Zone          *Zone                  `protobuf:"bytes,2,opt,name=zone,proto3" json:"zone,omitempty"`                   // The zone assigned to the node
+	Neighbours    []*Node                `protobuf:"bytes,3,rep,name=neighbours,proto3" json:"neighbours,omitempty"`       // List of neighboring nodes
+	Zones         []*Zone                `protobuf:"bytes,4,rep,name=zones,proto3" json:"zones,omitempty"`                 // List of neighbor zones
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NeighbourInfoRequest) Reset() {
+	*x = NeighbourInfoRequest{}
+	mi := &file_can_proto_msgTypes[13]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NeighbourInfoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NeighbourInfoRequest) ProtoMessage() {}
+
+func (x *NeighbourInfoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[13]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NeighbourInfoRequest.ProtoReflect.Descriptor instead.
+func (*NeighbourInfoRequest) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{13}
+}
+
+func (x *NeighbourInfoRequest) GetNodeId() string {
+	if x != nil {
+		return x.NodeId
+	}
+	return ""
+}
+
+func (x *NeighbourInfoRequest) GetZone() *Zone {
+	if x != nil {
+		return x.Zone
+	}
+	return nil
+}
+
+func (x *NeighbourInfoRequest) GetNeighbours() []*Node {
+	if x != nil {
+		return x.Neighbours
+	}
+	return nil
+}
+
+func (x *NeighbourInfoRequest) GetZones() []*Zone {
+	if x != nil {
+		return x.Zones
+	}
+	return nil
+}
+
+type NeighbourInfoResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"` // Whether the neighbor information was sent successfully
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *NeighbourInfoResponse) Reset() {
+	*x = NeighbourInfoResponse{}
+	mi := &file_can_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *NeighbourInfoResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*NeighbourInfoResponse) ProtoMessage() {}
+
+func (x *NeighbourInfoResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use NeighbourInfoResponse.ProtoReflect.Descriptor instead.
+func (*NeighbourInfoResponse) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *NeighbourInfoResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 var File_can_proto protoreflect.FileDescriptor
 
 var file_can_proto_rawDesc = string([]byte{
@@ -750,7 +863,20 @@ var file_can_proto_rawDesc = string([]byte{
 	0x64, 0x64, 0x72, 0x65, 0x73, 0x73, 0x22, 0x2d, 0x0a, 0x11, 0x48, 0x65, 0x61, 0x72, 0x74, 0x62,
 	0x65, 0x61, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73,
 	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75,
-	0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0x88, 0x02, 0x0a, 0x07, 0x43, 0x41, 0x4e, 0x4e, 0x6f, 0x64,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x22, 0x9a, 0x01, 0x0a, 0x14, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62,
+	0x6f, 0x75, 0x72, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x17,
+	0x0a, 0x07, 0x6e, 0x6f, 0x64, 0x65, 0x5f, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52,
+	0x06, 0x6e, 0x6f, 0x64, 0x65, 0x49, 0x64, 0x12, 0x1d, 0x0a, 0x04, 0x7a, 0x6f, 0x6e, 0x65, 0x18,
+	0x02, 0x20, 0x01, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x5a, 0x6f, 0x6e, 0x65,
+	0x52, 0x04, 0x7a, 0x6f, 0x6e, 0x65, 0x12, 0x29, 0x0a, 0x0a, 0x6e, 0x65, 0x69, 0x67, 0x68, 0x62,
+	0x6f, 0x75, 0x72, 0x73, 0x18, 0x03, 0x20, 0x03, 0x28, 0x0b, 0x32, 0x09, 0x2e, 0x63, 0x61, 0x6e,
+	0x2e, 0x4e, 0x6f, 0x64, 0x65, 0x52, 0x0a, 0x6e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x75, 0x72,
+	0x73, 0x12, 0x1f, 0x0a, 0x05, 0x7a, 0x6f, 0x6e, 0x65, 0x73, 0x18, 0x04, 0x20, 0x03, 0x28, 0x0b,
+	0x32, 0x09, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x5a, 0x6f, 0x6e, 0x65, 0x52, 0x05, 0x7a, 0x6f, 0x6e,
+	0x65, 0x73, 0x22, 0x31, 0x0a, 0x15, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x75, 0x72, 0x49,
+	0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x18, 0x0a, 0x07, 0x73,
+	0x75, 0x63, 0x63, 0x65, 0x73, 0x73, 0x18, 0x01, 0x20, 0x01, 0x28, 0x08, 0x52, 0x07, 0x73, 0x75,
+	0x63, 0x63, 0x65, 0x73, 0x73, 0x32, 0xd4, 0x02, 0x0a, 0x07, 0x43, 0x41, 0x4e, 0x4e, 0x6f, 0x64,
 	0x65, 0x12, 0x2b, 0x0a, 0x04, 0x4a, 0x6f, 0x69, 0x6e, 0x12, 0x10, 0x2e, 0x63, 0x61, 0x6e, 0x2e,
 	0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x11, 0x2e, 0x63, 0x61,
 	0x6e, 0x2e, 0x4a, 0x6f, 0x69, 0x6e, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x28,
@@ -767,8 +893,13 @@ var file_can_proto_rawDesc = string([]byte{
 	0x74, 0x12, 0x15, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x48, 0x65, 0x61, 0x72, 0x74, 0x62, 0x65, 0x61,
 	0x74, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x16, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x48,
 	0x65, 0x61, 0x72, 0x74, 0x62, 0x65, 0x61, 0x74, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65,
-	0x42, 0x0e, 0x5a, 0x0c, 0x2e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73,
-	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x12, 0x4a, 0x0a, 0x11, 0x53, 0x65, 0x6e, 0x64, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x75,
+	0x72, 0x49, 0x6e, 0x66, 0x6f, 0x12, 0x19, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4e, 0x65, 0x69, 0x67,
+	0x68, 0x62, 0x6f, 0x75, 0x72, 0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x1a, 0x1a, 0x2e, 0x63, 0x61, 0x6e, 0x2e, 0x4e, 0x65, 0x69, 0x67, 0x68, 0x62, 0x6f, 0x75, 0x72,
+	0x49, 0x6e, 0x66, 0x6f, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x42, 0x0e, 0x5a, 0x0c,
+	0x2e, 0x2f, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x66, 0x69, 0x6c, 0x65, 0x73, 0x62, 0x06, 0x70, 0x72,
+	0x6f, 0x74, 0x6f, 0x33,
 })
 
 var (
@@ -783,21 +914,23 @@ func file_can_proto_rawDescGZIP() []byte {
 	return file_can_proto_rawDescData
 }
 
-var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
 var file_can_proto_goTypes = []any{
-	(*Zone)(nil),                // 0: can.Zone
-	(*Node)(nil),                // 1: can.Node
-	(*KeyValuePair)(nil),        // 2: can.KeyValuePair
-	(*JoinRequest)(nil),         // 3: can.JoinRequest
-	(*JoinResponse)(nil),        // 4: can.JoinResponse
-	(*GetRequest)(nil),          // 5: can.GetRequest
-	(*GetResponse)(nil),         // 6: can.GetResponse
-	(*PutRequest)(nil),          // 7: can.PutRequest
-	(*PutResponse)(nil),         // 8: can.PutResponse
-	(*AddNeighborRequest)(nil),  // 9: can.AddNeighborRequest
-	(*AddNeighborResponse)(nil), // 10: can.AddNeighborResponse
-	(*HeartbeatRequest)(nil),    // 11: can.HeartbeatRequest
-	(*HeartbeatResponse)(nil),   // 12: can.HeartbeatResponse
+	(*Zone)(nil),                  // 0: can.Zone
+	(*Node)(nil),                  // 1: can.Node
+	(*KeyValuePair)(nil),          // 2: can.KeyValuePair
+	(*JoinRequest)(nil),           // 3: can.JoinRequest
+	(*JoinResponse)(nil),          // 4: can.JoinResponse
+	(*GetRequest)(nil),            // 5: can.GetRequest
+	(*GetResponse)(nil),           // 6: can.GetResponse
+	(*PutRequest)(nil),            // 7: can.PutRequest
+	(*PutResponse)(nil),           // 8: can.PutResponse
+	(*AddNeighborRequest)(nil),    // 9: can.AddNeighborRequest
+	(*AddNeighborResponse)(nil),   // 10: can.AddNeighborResponse
+	(*HeartbeatRequest)(nil),      // 11: can.HeartbeatRequest
+	(*HeartbeatResponse)(nil),     // 12: can.HeartbeatResponse
+	(*NeighbourInfoRequest)(nil),  // 13: can.NeighbourInfoRequest
+	(*NeighbourInfoResponse)(nil), // 14: can.NeighbourInfoResponse
 }
 var file_can_proto_depIdxs = []int32{
 	0,  // 0: can.Node.zone:type_name -> can.Zone
@@ -805,21 +938,26 @@ var file_can_proto_depIdxs = []int32{
 	1,  // 2: can.JoinResponse.neighbors:type_name -> can.Node
 	2,  // 3: can.JoinResponse.transferred_data:type_name -> can.KeyValuePair
 	1,  // 4: can.AddNeighborRequest.neighbor:type_name -> can.Node
-	3,  // 5: can.CANNode.Join:input_type -> can.JoinRequest
-	5,  // 6: can.CANNode.Get:input_type -> can.GetRequest
-	7,  // 7: can.CANNode.Put:input_type -> can.PutRequest
-	9,  // 8: can.CANNode.AddNeighbor:input_type -> can.AddNeighborRequest
-	11, // 9: can.CANNode.Heartbeat:input_type -> can.HeartbeatRequest
-	4,  // 10: can.CANNode.Join:output_type -> can.JoinResponse
-	6,  // 11: can.CANNode.Get:output_type -> can.GetResponse
-	8,  // 12: can.CANNode.Put:output_type -> can.PutResponse
-	10, // 13: can.CANNode.AddNeighbor:output_type -> can.AddNeighborResponse
-	12, // 14: can.CANNode.Heartbeat:output_type -> can.HeartbeatResponse
-	10, // [10:15] is the sub-list for method output_type
-	5,  // [5:10] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	0,  // 5: can.NeighbourInfoRequest.zone:type_name -> can.Zone
+	1,  // 6: can.NeighbourInfoRequest.neighbours:type_name -> can.Node
+	0,  // 7: can.NeighbourInfoRequest.zones:type_name -> can.Zone
+	3,  // 8: can.CANNode.Join:input_type -> can.JoinRequest
+	5,  // 9: can.CANNode.Get:input_type -> can.GetRequest
+	7,  // 10: can.CANNode.Put:input_type -> can.PutRequest
+	9,  // 11: can.CANNode.AddNeighbor:input_type -> can.AddNeighborRequest
+	11, // 12: can.CANNode.Heartbeat:input_type -> can.HeartbeatRequest
+	13, // 13: can.CANNode.SendNeighbourInfo:input_type -> can.NeighbourInfoRequest
+	4,  // 14: can.CANNode.Join:output_type -> can.JoinResponse
+	6,  // 15: can.CANNode.Get:output_type -> can.GetResponse
+	8,  // 16: can.CANNode.Put:output_type -> can.PutResponse
+	10, // 17: can.CANNode.AddNeighbor:output_type -> can.AddNeighborResponse
+	12, // 18: can.CANNode.Heartbeat:output_type -> can.HeartbeatResponse
+	14, // 19: can.CANNode.SendNeighbourInfo:output_type -> can.NeighbourInfoResponse
+	14, // [14:20] is the sub-list for method output_type
+	8,  // [8:14] is the sub-list for method input_type
+	8,  // [8:8] is the sub-list for extension type_name
+	8,  // [8:8] is the sub-list for extension extendee
+	0,  // [0:8] is the sub-list for field type_name
 }
 
 func init() { file_can_proto_init() }
@@ -833,7 +971,7 @@ func file_can_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_can_proto_rawDesc), len(file_can_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   13,
+			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

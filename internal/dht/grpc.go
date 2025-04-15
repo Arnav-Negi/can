@@ -137,6 +137,15 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 	}
 }
 
+// Helper function to convert NodeInfo to proto message
+func NodeInfoToProto (nodeInfo topology.NodeInfo) *pb.Node {
+	return &pb.Node{
+		NodeId: 	nodeInfo.NodeId,
+		Address: 	nodeInfo.IpAddress,
+		Zone:    	zoneToProto(nodeInfo.Zone),
+	}
+}
+
 func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
 	value, err := node.GetImplementation(req.Key, int(req.HashToUse))
 	if err != nil {
@@ -151,6 +160,24 @@ func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 		return &pb.PutResponse{Success: false}, err
 	}
 	return &pb.PutResponse{Success: true}, nil
+}
+
+func (node *Node) SendNeighbourInfo(ctx context.Context, req *pb.NeighbourInfoRequest) (*pb.NeighbourInfoResponse, error) {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	// Update the neighbour info
+	neighbourInfo := make([]topology.NodeInfo, len(req.Neighbours))
+	for i, n := range req.Neighbours {
+		neighbourInfo[i] = topology.NodeInfo{
+			NodeId:    n.NodeId,
+			IpAddress: n.Address,
+			Zone:      topology.NewZoneFromProto(n.Zone),
+		}
+	}
+	node.NeighInfo = neighbourInfo
+
+	return &pb.NeighbourInfoResponse{Success: true}, nil
 }
 
 func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {

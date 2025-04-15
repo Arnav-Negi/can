@@ -19,11 +19,12 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	CANNode_Join_FullMethodName        = "/can.CANNode/Join"
-	CANNode_Get_FullMethodName         = "/can.CANNode/Get"
-	CANNode_Put_FullMethodName         = "/can.CANNode/Put"
-	CANNode_AddNeighbor_FullMethodName = "/can.CANNode/AddNeighbor"
-	CANNode_Heartbeat_FullMethodName   = "/can.CANNode/Heartbeat"
+	CANNode_Join_FullMethodName              = "/can.CANNode/Join"
+	CANNode_Get_FullMethodName               = "/can.CANNode/Get"
+	CANNode_Put_FullMethodName               = "/can.CANNode/Put"
+	CANNode_AddNeighbor_FullMethodName       = "/can.CANNode/AddNeighbor"
+	CANNode_Heartbeat_FullMethodName         = "/can.CANNode/Heartbeat"
+	CANNode_SendNeighbourInfo_FullMethodName = "/can.CANNode/SendNeighbourInfo"
 )
 
 // CANNodeClient is the client API for CANNode service.
@@ -42,6 +43,8 @@ type CANNodeClient interface {
 	AddNeighbor(ctx context.Context, in *AddNeighborRequest, opts ...grpc.CallOption) (*AddNeighborResponse, error)
 	// Send Heartbeat
 	Heartbeat(ctx context.Context, in *HeartbeatRequest, opts ...grpc.CallOption) (*HeartbeatResponse, error)
+	// Send neighbour and zone information
+	SendNeighbourInfo(ctx context.Context, in *NeighbourInfoRequest, opts ...grpc.CallOption) (*NeighbourInfoResponse, error)
 }
 
 type cANNodeClient struct {
@@ -102,6 +105,16 @@ func (c *cANNodeClient) Heartbeat(ctx context.Context, in *HeartbeatRequest, opt
 	return out, nil
 }
 
+func (c *cANNodeClient) SendNeighbourInfo(ctx context.Context, in *NeighbourInfoRequest, opts ...grpc.CallOption) (*NeighbourInfoResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(NeighbourInfoResponse)
+	err := c.cc.Invoke(ctx, CANNode_SendNeighbourInfo_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CANNodeServer is the server API for CANNode service.
 // All implementations must embed UnimplementedCANNodeServer
 // for forward compatibility.
@@ -118,6 +131,8 @@ type CANNodeServer interface {
 	AddNeighbor(context.Context, *AddNeighborRequest) (*AddNeighborResponse, error)
 	// Send Heartbeat
 	Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error)
+	// Send neighbour and zone information
+	SendNeighbourInfo(context.Context, *NeighbourInfoRequest) (*NeighbourInfoResponse, error)
 	mustEmbedUnimplementedCANNodeServer()
 }
 
@@ -142,6 +157,9 @@ func (UnimplementedCANNodeServer) AddNeighbor(context.Context, *AddNeighborReque
 }
 func (UnimplementedCANNodeServer) Heartbeat(context.Context, *HeartbeatRequest) (*HeartbeatResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Heartbeat not implemented")
+}
+func (UnimplementedCANNodeServer) SendNeighbourInfo(context.Context, *NeighbourInfoRequest) (*NeighbourInfoResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SendNeighbourInfo not implemented")
 }
 func (UnimplementedCANNodeServer) mustEmbedUnimplementedCANNodeServer() {}
 func (UnimplementedCANNodeServer) testEmbeddedByValue()                 {}
@@ -254,6 +272,24 @@ func _CANNode_Heartbeat_Handler(srv interface{}, ctx context.Context, dec func(i
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CANNode_SendNeighbourInfo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(NeighbourInfoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CANNodeServer).SendNeighbourInfo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CANNode_SendNeighbourInfo_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CANNodeServer).SendNeighbourInfo(ctx, req.(*NeighbourInfoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CANNode_ServiceDesc is the grpc.ServiceDesc for CANNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -280,6 +316,10 @@ var CANNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Heartbeat",
 			Handler:    _CANNode_Heartbeat_Handler,
+		},
+		{
+			MethodName: "SendNeighbourInfo",
+			Handler:    _CANNode_SendNeighbourInfo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

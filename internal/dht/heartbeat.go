@@ -2,41 +2,51 @@ package dht
 
 import (
 	"context"
+	"sync"
 	"time"
 
+	"github.com/Arnav-Negi/can/internal/topology"
 	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
 func (node *Node) HeartbeatRoutine() {
-	// Start a goroutine to send heartbeat messages periodically
 	ticker := time.NewTicker(3 * time.Second)
 	defer ticker.Stop()
+
+	// Initially, send 2-hop info to all neighbours
+	node.NotifyAllNeighboursOfTwoHopInfo()
 
 	for range ticker.C {
 		node.mu.RLock()
 		neighbours := node.RoutingTable.Neighbours
 		node.mu.RUnlock()
 
+		var wg sync.WaitGroup
 		for _, neighbour := range neighbours {
-			node.logger.Printf("Sending heartbeat to %s", neighbour.IpAddress)
-			// Get the client connection to the neighbour
-			conn, err := node.getClientConn(neighbour.IpAddress)
-			if err != nil {
-				node.logger.Printf("Failed to connect to %s: %v", neighbour.IpAddress, err)
-				continue
-			}
-			client := pb.NewCANNodeClient(conn)
+			wg.Add(1)
+			go func(nbr topology.NodeInfo) {
+				defer wg.Done()
 
-			// Send heartbeat request
-			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-			_, err = client.Heartbeat(ctx, &pb.HeartbeatRequest{
-				Address: node.IPAddress,
-			})
-			cancel()
-			if err != nil {
-				node.logger.Printf("Failed to send heartbeat: %v", err)
-			}
+				conn, err := node.getClientConn(nbr.IpAddress)
+				if err != nil {
+					node.logger.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
+					return
+				}
+				client := pb.NewCANNodeClient(conn)
+
+				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				defer cancel()
+
+				_, err = client.Heartbeat(ctx, &pb.HeartbeatRequest{
+					Address: node.IPAddress,
+				})
+				if err != nil {
+					node.logger.Printf("Failed to send heartbeat to %s: %v", nbr.IpAddress, err)
+				}
+			}(neighbour)
 		}
+
+		wg.Wait() // Wait for all heartbeats to complete
 
 		node.CleanupStaleConnections()
 	}
@@ -56,7 +66,7 @@ func (node *Node) Heartbeat(ctx context.Context, req *pb.HeartbeatRequest) (*pb.
 
 func (node *Node) CleanupStaleConnections() {
 	node.mu.Lock()
-	defer node.mu.Unlock()
+	dirty := false
 
 	// Check for stale connections and remove them
 	for address, lastHeartbeat := range node.lastHeartbeat {
@@ -64,7 +74,15 @@ func (node *Node) CleanupStaleConnections() {
 			delete(node.conns, address)
 			delete(node.lastHeartbeat, address)
 			node.RoutingTable.RemoveNeighbor(address)
+
 			node.logger.Printf("Removed stale connection to %s", address)
+
+			dirty = true
 		}
+	}
+	node.mu.Unlock()
+
+	if dirty {
+		node.NotifyAllNeighboursOfTwoHopInfo()
 	}
 }

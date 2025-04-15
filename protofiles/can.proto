@@ -20,6 +20,9 @@ service CANNode {
 
   // Send Heartbeat
   rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // Send neighbour and zone information
+  rpc SendNeighbourInfo(NeighbourInfoRequest) returns (NeighbourInfoResponse);
 }
 
 
@@ -87,4 +90,15 @@ message HeartbeatRequest {
 }
 message HeartbeatResponse {
   bool success = 1; // Whether the heartbeat was acknowledged
+}
+
+// Request for sending neighbor and zone information
+message NeighbourInfoRequest {
+  string node_id = 1;           // Unique identifier for the node
+  Zone zone = 2;                // The zone assigned to the node
+  repeated Node neighbours = 3; // List of neighboring nodes
+  repeated Zone zones = 4;      // List of neighbor zones
+}
+message NeighbourInfoResponse {
+  bool success = 1; // Whether the neighbor information was sent successfully
 }
