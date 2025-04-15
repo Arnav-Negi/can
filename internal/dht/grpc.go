@@ -3,15 +3,17 @@ package dht
 import (
 	"context"
 	"fmt"
-	"github.com/Arnav-Negi/can/internal/topology"
-	"github.com/Arnav-Negi/can/internal/utils"
-	pb "github.com/Arnav-Negi/can/protofiles"
+	"log"
+	"net"
+	
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	"log"
-	"net"
+	
+	"github.com/Arnav-Negi/can/internal/topology"
+	"github.com/Arnav-Negi/can/internal/utils"
+	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
 func (node *Node) StartGRPCServer(port int) error {
@@ -137,8 +139,17 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 	}
 }
 
+// Helper function to convert NodeInfo to proto message
+func NodeInfoToProto (nodeInfo topology.NodeInfo) *pb.Node {
+	return &pb.Node{
+		NodeId: 	nodeInfo.NodeId,
+		Address: 	nodeInfo.IpAddress,
+		Zone:    	zoneToProto(nodeInfo.Zone),
+	}
+}
+
 func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
-	value, err := node.GetImplementation(req.Key)
+	value, err := node.GetImplementation(req.Key, int(req.HashToUse))
 	if err != nil {
 		return nil, err
 	}
@@ -146,9 +157,51 @@ func (node *Node) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse,
 }
 
 func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse, error) {
-	err := node.PutImplementation(req.Key, req.Value)
+	err := node.PutImplementation(req.Key, req.Value, int(req.HashToUse))
 	if err != nil {
 		return &pb.PutResponse{Success: false}, err
 	}
 	return &pb.PutResponse{Success: true}, nil
+}
+
+func (node *Node) SendNeighbourInfo(ctx context.Context, req *pb.NeighbourInfoRequest) (*pb.NeighbourInfoResponse, error) {
+	node.mu.Lock()
+	defer node.mu.Unlock()
+
+	// Update the neighbour info
+	neighbourInfo := make([]topology.NodeInfo, len(req.Neighbours))
+	for i, n := range req.Neighbours {
+		neighbourInfo[i] = topology.NodeInfo{
+			NodeId:    n.NodeId,
+			IpAddress: n.Address,
+			Zone:      topology.NewZoneFromProto(n.Zone),
+		}
+	}
+	node.NeighInfo = neighbourInfo
+
+	return &pb.NeighbourInfoResponse{Success: true}, nil
+}
+
+func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {
+	// Check if the connection already exists
+	node.mu.RLock()
+	conn, exists := node.conns[ip]
+	node.mu.RUnlock()
+	if exists {
+		return conn, nil
+	}
+
+	// Create a new connection
+	conn, err := grpc.NewClient(ip, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return nil, status.Error(codes.Unavailable, fmt.Sprintf("Failed to connect to %s: %v", ip, err))
+	}
+
+	// Store the connection in the map
+	node.mu.Lock()
+	node.conns[ip] = conn
+	node.mu.Unlock()
+
+	// Return the connection
+	return conn, nil
 }

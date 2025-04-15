@@ -42,11 +42,17 @@ func (dht *DHT) Leave() error {
 // Put This function is used to store a value in the DHT.
 // Overwrites the value if the key already exists.
 func (dht *DHT) Put(key string, value []byte) error {
-	return dht.Node.PutImplementation(key, value)
+	return dht.Node.PutImplementation(
+		key, value,
+		-1,  // The hash ID to query, -1 for all
+	)
 }
 
 // Get This function is used to retrieve a value from the DHT.
 // Error if the key does not exist or unable to retrieve the value.
 func (dht *DHT) Get(key string) ([]byte, error) {
-	return dht.Node.GetImplementation(key)
+	return dht.Node.GetImplementation(
+		key, 
+		-1,  // The hash ID to query, -1 for all
+	)
 }

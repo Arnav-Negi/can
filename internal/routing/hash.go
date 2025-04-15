@@ -14,24 +14,26 @@ type MultiHash struct {
 }
 
 // NewMultiHash creates a new MultiHash with the specified number of dimensions
-func NewMultiHash(dimensions int) *MultiHash {
+func NewMultiHash(dimensions int, hashId int) *MultiHash {
 	mh := &MultiHash{
 		dimensions: dimensions,
 		seeds:      make([]uint64, dimensions),
 	}
 	// deterministically initialize the seeds
-	mh.initSeeds()
+	mh.initSeeds(hashId)
 
 	return mh
 }
 
 // initSeeds initializes deterministic random seeds for each dimension
-func (mh *MultiHash) initSeeds() {
+func (mh *MultiHash) initSeeds(hashId int) {
 	for i := 0; i < mh.dimensions; i++ {
 		// Use a deterministic method to generate seed for dimension i
-		// Here we're using a simple approach: hash the dimension index
+		// Here we're using a simple approach: 
+		// hash the dimension index and the hashId
+		// to create a unique seed for each dimension and hasher
 		h := fnv.New64a()
-		h.Write([]byte("dimension-seed-" + strconv.Itoa(i)))
+		h.Write([]byte("dimension-seed-" + strconv.Itoa(i) + "-" + strconv.Itoa(hashId)))
 		mh.seeds[i] = binary.BigEndian.Uint64(h.Sum(nil))
 	}
 }

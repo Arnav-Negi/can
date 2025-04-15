@@ -17,6 +17,12 @@ service CANNode {
 
   // Add a neighbor to the routing table
   rpc AddNeighbor(AddNeighborRequest) returns (AddNeighborResponse);
+
+  // Send Heartbeat
+  rpc Heartbeat(HeartbeatRequest) returns (HeartbeatResponse);
+
+  // Send neighbour and zone information
+  rpc SendNeighbourInfo(NeighbourInfoRequest) returns (NeighbourInfoResponse);
 }
 
 
@@ -28,7 +34,7 @@ message Zone {
 message Node {
   string node_id = 1; // Unique identifier for the node
   string address = 2; // IP:Port of the node
-  Zone zone = 3; // The zone assigned to the node
+  Zone zone = 3;      // The zone assigned to the node
 }
 message KeyValuePair {
   string key = 1;
@@ -52,6 +58,7 @@ message JoinResponse {
 // Request for looking up a key
 message GetRequest {
   string key = 1;
+  int32 hash_to_use = 2;
 }
 message GetResponse {
   bytes value = 1;
@@ -61,6 +68,7 @@ message GetResponse {
 message PutRequest {
   string key = 1;
   bytes value = 2;
+  int32 hash_to_use = 3; // Hash function to use for the key
 }
 
 message PutResponse {
@@ -74,4 +82,23 @@ message AddNeighborRequest {
 
 message AddNeighborResponse {
   bool success = 1; // Whether the neighbor was added successfully
+}
+
+// Request for sending a heartbeat
+message HeartbeatRequest {
+  string address = 1; // IP:Port of the node
+}
+message HeartbeatResponse {
+  bool success = 1; // Whether the heartbeat was acknowledged
+}
+
+// Request for sending neighbor and zone information
+message NeighbourInfoRequest {
+  string node_id = 1;           // Unique identifier for the node
+  Zone zone = 2;                // The zone assigned to the node
+  repeated Node neighbours = 3; // List of neighboring nodes
+  repeated Zone zones = 4;      // List of neighbor zones
+}
+message NeighbourInfoResponse {
+  bool success = 1; // Whether the neighbor information was sent successfully
 }

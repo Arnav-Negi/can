@@ -1,26 +1,41 @@
 package routing
 
 import (
+	"sort"
+	"sync"
+
 	"github.com/Arnav-Negi/can/internal/topology"
 	"github.com/Arnav-Negi/can/internal/utils"
-	"sort"
 )
 
 type RoutingTable struct {
-	Dimensions   uint
-	HashFunction MultiHash
-	Neighbours   []topology.NodeInfo
+	mu 			  sync.RWMutex
+
+	Dimensions    uint
+	NumHashes	  uint
+	HashFunctions []MultiHash
+	Neighbours    []topology.NodeInfo
 }
 
-func NewRoutingTable(dimensions uint) *RoutingTable {
+func NewRoutingTable(dimensions uint, NumHashes uint) *RoutingTable {
+	HashFunctions := make([]MultiHash, NumHashes)
+	for i := 0; i < int(NumHashes); i++ {
+		HashFunctions[i] = *NewMultiHash(int(dimensions), i)
+	}
+
 	return &RoutingTable{
-		Dimensions:   dimensions,
-		HashFunction: *NewMultiHash(int(dimensions)),
-		Neighbours:   []topology.NodeInfo{},
+		mu:            sync.RWMutex{},
+		Dimensions:    dimensions,
+		NumHashes:     NumHashes,
+		HashFunctions: HashFunctions,
+		Neighbours:    []topology.NodeInfo{},
 	}
 }
 
 func (rt *RoutingTable) AddNode(nodeInfo topology.NodeInfo) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
 	rt.Neighbours = append(rt.Neighbours, nodeInfo)
 }
 
@@ -28,7 +43,11 @@ func (rt *RoutingTable) AddNode(nodeInfo topology.NodeInfo) {
 func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topology.NodeInfo {
 	utils.Assert(len(coords) == int(rt.Dimensions), "Coordinates length must match dimensions")
 	utils.Assert(len(rt.Neighbours) > 0, "No neighbours to sort")
+
+	rt.mu.RLock()
 	sortedNeighbors := rt.Neighbours
+	rt.mu.RUnlock()
+
 	sort.Slice(sortedNeighbors, func(i, j int) bool {
 		node1 := sortedNeighbors[i]
 		node2 := sortedNeighbors[j]
@@ -40,4 +59,16 @@ func (rt *RoutingTable) GetNodesSorted(coords []float32, numNodes int) []topolog
 		numNodes = len(sortedNeighbors)
 	}
 	return sortedNeighbors[:numNodes]
+}
+
+func (rt *RoutingTable) RemoveNeighbor(ip string) {
+	rt.mu.Lock()
+	defer rt.mu.Unlock()
+
+	for i, node := range rt.Neighbours {
+		if node.IpAddress == ip {
+			rt.Neighbours = append(rt.Neighbours[:i], rt.Neighbours[i+1:]...)
+			break
+		}
+	}
 }

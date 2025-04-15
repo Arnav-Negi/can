@@ -19,6 +19,7 @@ message JoinInfoRequest {
 // JoinInfoResponse contains a list of active nodes in the network
 message JoinInfoResponse {
   uint32 dimensions = 1;
-  string node_id = 2;
-  repeated string active_nodes = 3; // IP Addresses of active nodes
+  uint32 num_hashes = 2;
+  string node_id = 3;
+  repeated string active_nodes = 4; // IP Addresses of active nodes
 }
