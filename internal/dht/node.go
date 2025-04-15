@@ -2,52 +2,59 @@ package dht
 
 import (
 	"context"
-	"log"
+	"google.golang.org/grpc/credentials/insecure"
 	"math/rand"
+	"os"
 	"sync"
 	"time"
 
-	"github.com/Arnav-Negi/can/internal/cache"
 	"github.com/Arnav-Negi/can/internal/routing"
 	"github.com/Arnav-Negi/can/internal/store"
 	"github.com/Arnav-Negi/can/internal/topology"
 	pb "github.com/Arnav-Negi/can/protofiles"
 
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Node struct {
 	pb.UnimplementedCANNodeServer
-	conns        	map[string]*grpc.ClientConn
-	
-	IPAddress     	string
-	
-	Info         	*topology.NodeInfo
-	RoutingTable 	*routing.RoutingTable
-	NeighInfo   	[]topology.NodeInfo
-	lastHeartbeat	map[string]time.Time
-	
-	KVStore      	*store.MemoryStore
-	QueryCache   	*cache.Cache
-	
-	mu           	sync.RWMutex
+
+	conns map[string]*grpc.ClientConn
+
+	IPAddress string
+
+	Info          *topology.NodeInfo
+	RoutingTable  *routing.RoutingTable
+	NeighInfo     []topology.NodeInfo
+	lastHeartbeat map[string]time.Time
+
+	KVStore    *store.MemoryStore
+	QueryCache *Cache
+
+	mu sync.RWMutex
+
+	logger *logrus.Logger
 }
 
 // NewNode This function initializes a new Node instance.
 func NewNode() *Node {
 	ipAddress := "localhost:0"
 
-	return &Node{
-		conns:        	make(map[string]*grpc.ClientConn),
-		IPAddress:   	ipAddress,
-		RoutingTable: 	nil, 
-		NeighInfo:    	make([]topology.NodeInfo, 0),
-		lastHeartbeat: 	make(map[string]time.Time),
-		KVStore:      	store.NewMemoryStore(),
-		QueryCache:   	cache.NewCache(128, 10 * time.Second), // TODO: Make this configurable
-		mu: 		  	sync.RWMutex{},
+	retNode := &Node{
+		conns:         make(map[string]*grpc.ClientConn),
+		IPAddress:     ipAddress,
+		RoutingTable:  nil,
+		NeighInfo:     make([]topology.NodeInfo, 0),
+		lastHeartbeat: make(map[string]time.Time),
+		KVStore:       store.NewMemoryStore(),
+		QueryCache:    nil, // TODO: Make this configurable
+		mu:            sync.RWMutex{},
+		logger:        logrus.New(),
 	}
+	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second)
+	return retNode
 }
 
 func GetRandomCoordinates(dims uint) []float32 {
@@ -56,6 +63,12 @@ func GetRandomCoordinates(dims uint) []float32 {
 		coords[i] = rand.Float32()
 	}
 	return coords
+}
+
+func (node *Node) getGRPCConn(addr string) (*grpc.ClientConn, error) {
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)))
+	return conn, err
 }
 
 // splitZone splits the current zone and returns the new zone and transferred data
@@ -109,14 +122,14 @@ func (node *Node) splitZone(coords []float32) (topology.Zone, map[string][]byte,
 
 	// Transfer data that falls in the new zone
 	transferredData := make(map[string][]byte)
-	keysToRemove := []string{}
+	var keysToRemove []string
 
 	node.KVStore.ForEach(func(key string, value []byte) {
-		toRemove := true 
+		toRemove := true
 		for i := 0; i < int(node.RoutingTable.NumHashes); i++ {
 			// Calculate coordinates for the key
 			keyCoords := node.RoutingTable.HashFunctions[i].GetCoordinates(key)
-	
+
 			// Check if the key belongs to the new zone
 			if newZone.Contains(keyCoords) {
 				transferredData[key] = value
@@ -125,7 +138,7 @@ func (node *Node) splitZone(coords []float32) (topology.Zone, map[string][]byte,
 			}
 		}
 
-		// If the key belongs to current node in ANY hash 
+		// If the key belongs to current node in ANY hash
 		// function - Keep it, otherwise remove it
 		if toRemove {
 			keysToRemove = append(keysToRemove, key)
@@ -187,10 +200,10 @@ func (node *Node) NotifyNeighbors() error {
 		}
 
 		// Create connection to neighbor
-		conn, err := grpc.NewClient(neighbor.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := node.getGRPCConn(neighbor.IpAddress)
 		if err != nil {
 			// Log error but continue with other neighbors
-			log.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
+			node.logger.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
 			continue
 		}
 
@@ -209,7 +222,7 @@ func (node *Node) NotifyNeighbors() error {
 		// Send the request
 		_, err = canServiceClient.AddNeighbor(context.Background(), addNeighborRequest)
 		if err != nil {
-			log.Printf("Failed to notify neighbor %s: %v", neighbor.NodeId, err)
+			node.logger.Printf("Failed to notify neighbor %s: %v", neighbor.NodeId, err)
 			// Continue with other neighbors
 		}
 	}
@@ -231,7 +244,7 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 
 			conn, err := node.getClientConn(nbr.IpAddress)
 			if err != nil {
-				log.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
+				node.logger.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
 				return
 			}
 			client := pb.NewCANNodeClient(conn)
@@ -258,20 +271,22 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 				Zones:      zones,
 			})
 			if err != nil {
-				log.Printf("Failed to send neighbour info to %s: %v", nbr.IpAddress, err)
+				node.logger.Printf("Failed to send neighbour info to %s: %v", nbr.IpAddress, err)
 			}
 		}(neighbour)
 	}
 
 	wg.Wait()
-	log.Printf("Updated 2-hop neighbours for all nodes")
+	node.logger.Printf("Updated 2-hop neighbours for all nodes")
 }
 
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Query the bootstrap node for info
-	bootstrapConn, err := grpc.NewClient(bootstrapAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil { return err }
+	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
+	if err != nil {
+		return err
+	}
 	defer bootstrapConn.Close()
 	bootstrapServiceClient := pb.NewBootstrapServiceClient(bootstrapConn)
 
@@ -281,7 +296,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address: node.IPAddress,
 		},
 	)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	// Initialise node info
 	node.mu.Lock()
@@ -295,14 +312,26 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 	node.mu.Unlock()
 
+	// Set up logger file and open file with node.logger
+	logFilePath := "./logs/" + node.Info.NodeId + ".log"
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return err
+	}
+	node.logger.SetOutput(file)
+
 	// If no CAN nodes in network, take whole zone
-	if len(joinInfo.ActiveNodes) == 0 { return nil }
+	if len(joinInfo.ActiveNodes) == 0 {
+		return nil
+	}
 
 	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
 	randCoords := GetRandomCoordinates(dims) // Joining point P
 	conn, err := node.getClientConn(joinInfo.ActiveNodes[randIndex])
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	canServiceClient := pb.NewCANNodeClient(conn)
 	joinResponse, err := canServiceClient.Join(
@@ -313,7 +342,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address:     node.IPAddress,
 		},
 	)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	// use join response to update node info
 	node.mu.Lock()
@@ -336,11 +367,11 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 	// Notify all neighbors about our existence
 	if err = node.NotifyNeighbors(); err != nil {
-		log.Printf("Warning: Failed to notify some neighbors: %v", err)
+		node.logger.Printf("Warning: Failed to notify some neighbors: %v", err)
 	}
 
 	// Log the join event
-	log.Printf("Node %s joined the network with zone %v", node.Info.NodeId, node.Info.Zone)
+	node.logger.Printf("Node %s joined the network with zone %v", node.Info.NodeId, node.Info.Zone)
 
 	return nil
 }

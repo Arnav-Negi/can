@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
@@ -30,7 +29,7 @@ func (node *Node) HeartbeatRoutine() {
 
 				conn, err := node.getClientConn(nbr.IpAddress)
 				if err != nil {
-					log.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
+					node.logger.Printf("Failed to connect to %s: %v", nbr.IpAddress, err)
 					return
 				}
 				client := pb.NewCANNodeClient(conn)
@@ -42,7 +41,7 @@ func (node *Node) HeartbeatRoutine() {
 					Address: node.IPAddress,
 				})
 				if err != nil {
-					log.Printf("Failed to send heartbeat to %s: %v", nbr.IpAddress, err)
+					node.logger.Printf("Failed to send heartbeat to %s: %v", nbr.IpAddress, err)
 				}
 			}(neighbour)
 		}
@@ -68,19 +67,22 @@ func (node *Node) Heartbeat(ctx context.Context, req *pb.HeartbeatRequest) (*pb.
 func (node *Node) CleanupStaleConnections() {
 	node.mu.Lock()
 	dirty := false
-	
+
 	// Check for stale connections and remove them
 	for address, lastHeartbeat := range node.lastHeartbeat {
-		if time.Since(lastHeartbeat) > 10 * time.Second { // TODO : Make this configurable
+		if time.Since(lastHeartbeat) > 10*time.Second { // TODO : Make this configurable
 			delete(node.conns, address)
 			delete(node.lastHeartbeat, address)
 			node.RoutingTable.RemoveNeighbor(address)
-			log.Printf("Removed stale connection to %s", address)
-			
+
+			node.logger.Printf("Removed stale connection to %s", address)
+
 			dirty = true
 		}
 	}
 	node.mu.Unlock()
 
-	if dirty { node.NotifyAllNeighboursOfTwoHopInfo() }
+	if dirty {
+		node.NotifyAllNeighboursOfTwoHopInfo()
+	}
 }

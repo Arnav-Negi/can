@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"log"
 	"sync"
 
 	"google.golang.org/grpc/codes"
@@ -27,7 +26,7 @@ func (node *Node) GetHelper(helperCtx context.Context, key string, hashIdx int) 
 
 	// ROUTING NEEDED
 	// Get IPs sorted by distance
-	closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+	closestNodes := node.RoutingTable.GetNodesSorted(coords, node.Info.Zone, 3)
 	if len(closestNodes) == 0 {
 		return nil, status.Errorf(codes.Unavailable, "No nodes found in the routing table")
 	}
@@ -70,7 +69,7 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 	// Before anything, check if the key is in the cache
 	// If found in cache, return the cached value
 	if cachedValue, found := node.QueryCache.Cache.Get(key); found {
-		log.Println("Cache hit for key:", key)
+		node.logger.Println("Cache hit for key:", key)
 		return cachedValue, nil
 	}
 
@@ -82,7 +81,6 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 
 	// Different behaviors for each case
 	resultChan := make(chan []byte, 1)
-	notFound := false
 
 	// If the hashToUse is nil, then send on all
 	// Else send on that given hash to use only
@@ -98,6 +96,8 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 	}
 	node.mu.RUnlock()
 
+	errChan := make(chan error, len(tryList))
+
 	// Try on the hash functions
 	for _, i := range tryList {
 		wg.Add(1)
@@ -112,28 +112,33 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 				default:
 					return
 				}
-			} else if status.Code(err) == codes.NotFound {
-				notFound = true
-				cancel()
 			}
+			errChan <- err
 		}(i)
 	}
 	wg.Wait() // Wait for all goroutines to finish
 
+	retrieved := false
+	unavailable := false
+	for i := 0; i < len(tryList); i++ {
+		err := <-errChan
+		if err == nil {
+			retrieved = true
+		} else if status.Code(err) != codes.NotFound {
+			unavailable = true
+		}
+	}
+
 	var result []byte
-	select {
-	case result = <-resultChan:
-		// Successfully retrieved the value
-		// Store the value in the cache
-		node.QueryCache.Cache.Add(key, result)
-	case <-ctx.Done(): // Everyone failed
+	if retrieved {
+		result = <-resultChan
 	}
 
 	if result != nil {
 		return result, nil
-	} else if notFound {
-		return nil, status.Errorf(codes.NotFound, "Key not found in the DHT")
-	} else {
+	} else if unavailable {
 		return nil, status.Errorf(codes.Unavailable, "DHT is unavailable")
+	} else {
+		return nil, status.Errorf(codes.NotFound, "Key not found in the DHT")
 	}
 }

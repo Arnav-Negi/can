@@ -3,14 +3,12 @@ package dht
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
-	
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
-	
+
 	"github.com/Arnav-Negi/can/internal/topology"
 	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
@@ -19,7 +17,7 @@ import (
 func (node *Node) StartGRPCServer(port int) error {
 	ip, err := utils.GetIPAddress()
 	if err != nil {
-		return fmt.Errorf("failed to get IP address: %v", err)
+		node.logger.Fatalf("failed to get IP address: %v", err)
 	}
 
 	// Start the gRPC server
@@ -29,12 +27,12 @@ func (node *Node) StartGRPCServer(port int) error {
 	node.IPAddress = lis.Addr().String()
 
 	if err != nil {
-		return fmt.Errorf("failed to listen: %v", err)
+		node.logger.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer()
+	s := grpc.NewServer(grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)))
 	pb.RegisterCANNodeServer(s, node)
 	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
+		node.logger.Fatalf("failed to serve: %v", err)
 	}
 	return nil
 }
@@ -47,9 +45,9 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	coords := req.Coordinates
 	if !node.Info.Zone.Contains(coords) {
 		// Forward to the closest neighbor
-		closestNodes := node.RoutingTable.GetNodesSorted(coords, 3)
+		closestNodes := node.RoutingTable.GetNodesSorted(coords, node.Info.Zone, 3)
 		for _, closestNode := range closestNodes {
-			canConn, err := grpc.NewClient(closestNode.IpAddress, grpc.WithTransportCredentials(insecure.NewCredentials()))
+			canConn, err := node.getGRPCConn(closestNode.IpAddress)
 			if err != nil {
 				continue
 			}
@@ -90,9 +88,9 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	}
 
 	// Log the join event
-	log.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
-	log.Printf("Updated neighbors: %v", pbNeighbors)
-	log.Printf("Current zone: %v", node.Info.Zone)
+	node.logger.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
+	node.logger.Printf("Updated neighbors: %v", pbNeighbors)
+	node.logger.Printf("Current zone: %v", node.Info.Zone)
 
 	return &pb.JoinResponse{
 		AssignedZone:    zoneToProto(newZone),
@@ -126,7 +124,7 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 	// Add the node to our routing table
 	node.RoutingTable.AddNode(neighborInfo)
 
-	log.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+	node.logger.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
 
 	return &pb.AddNeighborResponse{Success: true}, nil
 }
@@ -140,11 +138,11 @@ func zoneToProto(zone topology.Zone) *pb.Zone {
 }
 
 // Helper function to convert NodeInfo to proto message
-func NodeInfoToProto (nodeInfo topology.NodeInfo) *pb.Node {
+func NodeInfoToProto(nodeInfo topology.NodeInfo) *pb.Node {
 	return &pb.Node{
-		NodeId: 	nodeInfo.NodeId,
-		Address: 	nodeInfo.IpAddress,
-		Zone:    	zoneToProto(nodeInfo.Zone),
+		NodeId:  nodeInfo.NodeId,
+		Address: nodeInfo.IpAddress,
+		Zone:    zoneToProto(nodeInfo.Zone),
 	}
 }
 
@@ -192,7 +190,7 @@ func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {
 	}
 
 	// Create a new connection
-	conn, err := grpc.NewClient(ip, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := node.getGRPCConn(ip)
 	if err != nil {
 		return nil, status.Error(codes.Unavailable, fmt.Sprintf("Failed to connect to %s: %v", ip, err))
 	}

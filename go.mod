@@ -7,6 +7,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/mattn/go-sqlite3 v1.14.24
+	github.com/sirupsen/logrus v1.9.3
 	google.golang.org/grpc v1.71.1
 	google.golang.org/protobuf v1.36.6
 )
