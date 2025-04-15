@@ -42,7 +42,6 @@ func (rt *RoutingTable) AddNode(nodeInfo topology.NodeInfo) {
 // GetNodesSorted Sort the neighbours based on their distance to the given coordinates
 func (rt *RoutingTable) GetNodesSorted(coords []float32, selZone topology.Zone, numNodes int) []topology.NodeInfo {
 	utils.Assert(len(coords) == int(rt.Dimensions), "Coordinates length must match dimensions")
-	utils.Assert(len(rt.Neighbours) > 0, "No neighbours to sort")
 
 	rt.mu.RLock()
 	sortedNeighbors := rt.Neighbours

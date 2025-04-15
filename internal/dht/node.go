@@ -319,6 +319,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 		return err
 	}
 	node.logger.SetOutput(file)
+	node.logger.SetFormatter(&logrus.TextFormatter{
+		DisableColors: true,
+	})
 
 	// If no CAN nodes in network, take whole zone
 	if len(joinInfo.ActiveNodes) == 0 {
