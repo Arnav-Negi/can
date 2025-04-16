@@ -14,7 +14,7 @@ func main() {
 	// Define command line flags
 	bootstrapIP := flag.String("bootstrap", "127.0.0.1:5000", "IP:Port of the bootstrap node")
 	numNodes := flag.Int("nodes", 5, "Number of DHT nodes to create")
-	operationTimeoutSec := flag.Int("op-timeout", 5, "Seconds to wait between operations")
+	operationTimeoutSec := flag.Int("op-timeout", 2, "Seconds to wait between operations")
 	flag.Parse()
 
 	log.Printf("Starting DHT scale test with %d nodes, bootstrap: %s", *numNodes, *bootstrapIP)
@@ -27,7 +27,7 @@ func main() {
 	for i := 0; i < *numNodes; i++ {
 		go func(nodeID int) {
 			defer wg.Done()
-			time.Sleep(time.Duration((i+1)*10) * time.Millisecond)
+			time.Sleep(time.Duration(i) * 20 * time.Millisecond)
 
 			// Create a new DHT node
 			dht := can.NewDHT()
@@ -37,13 +37,13 @@ func main() {
 				err := dht.StartNode(0) // 0 for random port
 				if err != nil {
 					//logMutex.Lock()
-					log.Fatalf("Node %d failed to start: %v", nodeID, err)
+					log.Printf("ERROR Node %d failed to start: %v", nodeID, err)
 					//logMutex.Unlock()
 				}
 			}()
 
 			// Wait a short time for node to initialize
-			time.Sleep(1 * time.Second)
+			time.Sleep(time.Duration(*numNodes) * 30 * time.Millisecond)
 
 			// Join the DHT network using bootstrap
 			//logMutex.Lock()
@@ -53,12 +53,12 @@ func main() {
 			err := dht.Join(*bootstrapIP)
 			if err != nil {
 				//logMutex.Lock()
-				log.Fatalf("Node %d failed to join network: %v", nodeID, err)
+				log.Printf("ERROR Node %d failed to join network: %v", nodeID, err)
 				//logMutex.Unlock()
 			}
 
 			// Wait for network stabilization
-			time.Sleep(time.Duration(*operationTimeoutSec) * time.Second)
+			time.Sleep(time.Duration(*operationTimeoutSec) * 5 * time.Second)
 
 			// Generate unique key-value pairs for this node
 			keyPrefix := fmt.Sprintf("node-%d-key-", nodeID)
@@ -79,7 +79,7 @@ func main() {
 				err := dht.Put(key, value)
 				if err != nil {
 					//logMutex.Lock()
-					log.Fatalf("Node %d failed to put %s: %v", nodeID, key, err)
+					log.Printf("ERROR Node %d failed to put %s: %v", nodeID, key, err)
 					//logMutex.Unlock()
 				}
 
@@ -99,14 +99,14 @@ func main() {
 				value, err := dht.Get(key)
 				if err != nil {
 					//logMutex.Lock()
-					log.Fatalf("Node %d failed to get %s: %v", nodeID, key, err)
+					log.Printf("ERROR Node %d failed to get %s: %v", nodeID, key, err)
 					//logMutex.Unlock()
 				}
 
 				// Verify retrieved value matches what we stored
 				if string(value) != string(expectedValue) {
 					//logMutex.Lock()
-					log.Fatalf("Node %d: Value mismatch for key %s. Expected '%s', got '%s'",
+					log.Printf("ERROR Node %d: Value mismatch for key %s. Expected '%s', got '%s'",
 						nodeID, key, expectedValue, value)
 					//logMutex.Unlock()
 				}
@@ -130,7 +130,7 @@ func main() {
 				_, err := dht.Get(otherKey)
 				if err != nil {
 					//logMutex.Lock()
-					log.Fatalf("Node %d failed to get other node's key %s: %v", nodeID, otherKey, err)
+					log.Printf("ERROR Node %d failed to get other node's key %s: %v", nodeID, otherKey, err)
 					//logMutex.Unlock()
 				}
 

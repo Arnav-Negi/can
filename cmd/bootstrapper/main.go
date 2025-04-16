@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	pb "github.com/Arnav-Negi/can/protofiles"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -18,6 +17,24 @@ const (
 	defaultNumHashes  = 3    // Default number of hash functions
 )
 
+type IDService struct {
+	mu      sync.Mutex
+	counter int
+}
+
+func newIDService() *IDService {
+	return &IDService{
+		counter: 0,
+	}
+}
+
+func (idService *IDService) NewId() string {
+	idService.mu.Lock()
+	defer idService.mu.Unlock()
+	idService.counter++
+	return fmt.Sprintf("node-%d", idService.counter)
+}
+
 // BootstrapServer implements the BootstrapService gRPC service
 type BootstrapServer struct {
 	pb.UnimplementedBootstrapServiceServer
@@ -29,6 +46,9 @@ type BootstrapServer struct {
 
 	// Mutex for synchronizing access to activeNodes
 	mu sync.RWMutex
+
+	// id service to generate IDs
+	idService *IDService
 }
 
 // NewBootstrapServer creates a new bootstrap server
@@ -38,6 +58,7 @@ func NewBootstrapServer(dimensions uint32, numHashes uint32) *BootstrapServer {
 		numHashes:   numHashes,
 		activeNodes: make([]string, 0),
 		mu:          sync.RWMutex{},
+		idService:   newIDService(),
 	}
 }
 
@@ -50,7 +71,7 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 	response := &pb.JoinInfoResponse{
 		Dimensions:  s.dimensions,
 		NumHashes:   s.numHashes,
-		NodeId:      uuid.New().String(),
+		NodeId:      s.idService.NewId(),
 		ActiveNodes: s.getActiveNodes(),
 	}
 

@@ -13,7 +13,7 @@ import (
 	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
-func (node *Node) StartGRPCServer(port int) error {
+func (node *Node) StartGRPCServer(ip string, port int) error {
 	// Start the gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
 	if err != nil {
@@ -21,8 +21,11 @@ func (node *Node) StartGRPCServer(port int) error {
 	}
 	node.logger.Printf("Listening on IP %s", lis.Addr().String())
 
+	// if port was given 0, it was selected randomly,
+	port = lis.Addr().(*net.TCPAddr).Port
+
 	// extract IP address from the listener
-	node.IPAddress = lis.Addr().String()
+	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
 
 	if err != nil {
 		node.logger.Fatalf("failed to listen: %v", err)
