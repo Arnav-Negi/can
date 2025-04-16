@@ -89,6 +89,31 @@ func (s *BootstrapServer) getActiveNodes() []string {
 	return nodes
 }
 
+func PrintAllIPs() {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue // ignore down or loopback interfaces
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil && ip.To4() != nil {
+				log.Printf("Found IP: %s", ip)
+			}
+		}
+	}
+}
+
 func main() {
 	// Parse command line arguments
 	port := flag.Int("port", defaultPort, "Server port")
@@ -101,7 +126,7 @@ func main() {
 	}
 
 	// Create a listener on the specified port
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -113,7 +138,9 @@ func main() {
 	server := NewBootstrapServer(uint32(*dimensions), uint32(*numHashes))
 	pb.RegisterBootstrapServiceServer(grpcServer, server)
 
-	log.Printf("Bootstrap server started on port %d", *port)
+	// print all IPs to be accessed
+	PrintAllIPs()
+	log.Printf("Port: %d", *port)
 	log.Printf("CAN dimensions: %d", server.dimensions)
 
 	// Start serving requests

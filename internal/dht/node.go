@@ -356,7 +356,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 	// use join response to update node info
 	node.mu.Lock()
-	defer node.mu.Unlock()
 	node.Info.Zone = topology.NewZoneFromProto(joinResponse.AssignedZone)
 
 	// assigning neighbours
@@ -372,6 +371,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	for _, kv := range joinResponse.TransferredData {
 		node.KVStore.Insert(kv.Key, kv.Value)
 	}
+	node.mu.Unlock()
 
 	// Notify all neighbors about our existence
 	if err = node.NotifyNeighbors(); err != nil {

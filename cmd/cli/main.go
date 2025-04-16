@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	port          = flag.Int("port", 0, "Port to listen on")
-	bootstrapPort = flag.Int("bootstrapPort", 5000, "Port to listen on")
+	port        = flag.Int("port", 0, "Port to listen on")
+	bootstrapIP = flag.String("bootstrap", "localhost:5000", "Bootstrap IP address")
 )
 
 func main() {
@@ -28,12 +28,12 @@ func main() {
 	time.Sleep(1 * time.Second)
 	fmt.Println("Listening on :", dht.Node.IPAddress)
 
-	err := dht.Join(fmt.Sprintf("localhost:%d", *bootstrapPort))
+	err := dht.Join(*bootstrapIP)
 	if err != nil {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
-	
+
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 
 	// Start Heartbeat routine

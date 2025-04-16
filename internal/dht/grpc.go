@@ -10,18 +10,16 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/Arnav-Negi/can/internal/topology"
-	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
 func (node *Node) StartGRPCServer(port int) error {
-	ip, err := utils.GetIPAddress()
-	if err != nil {
-		node.logger.Fatalf("failed to get IP address: %v", err)
-	}
-
 	// Start the gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
+	if err != nil {
+		node.logger.Fatalf("failed to listen: %v", err)
+	}
+	node.logger.Printf("Listening on IP %s", lis.Addr().String())
 
 	// extract IP address from the listener
 	node.IPAddress = lis.Addr().String()
@@ -38,9 +36,6 @@ func (node *Node) StartGRPCServer(port int) error {
 }
 
 func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse, error) {
-	node.mu.Lock()
-	defer node.mu.Unlock()
-
 	// Check if coordinates are in this node's zone
 	coords := req.Coordinates
 	if !node.Info.Zone.Contains(coords) {
@@ -60,6 +55,8 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 		return nil, status.Errorf(codes.Unavailable, "Could not forward join request")
 	}
 
+	node.mu.Lock()
+	defer node.mu.Unlock()
 	// Split the zone and transfer data
 	newZone, transferredData, err := node.splitZone(coords)
 	if err != nil {
