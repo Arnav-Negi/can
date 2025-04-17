@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"log"
 	"math/rand"
 	"os"
 	"sync"
@@ -374,7 +373,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	canServiceClient := pb.NewCANNodeClient(conn)
-	log.Printf("HALLO0")
 	joinResponse, err := canServiceClient.Join(
 		context.Background(),
 		&pb.JoinRequest{
@@ -383,12 +381,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address:     node.IPAddress,
 		},
 	)
-	log.Printf("HALLO1")
 	if err != nil {
 		return err
 	}
-
-	log.Printf("HALLO2")
 
 	// use join response to update node info
 	node.mu.Lock()
