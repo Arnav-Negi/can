@@ -162,3 +162,12 @@ func (z *Zone) SetCoordMins(mins []float32) {
 func (z *Zone) SetCoordMaxs(maxs []float32) {
 	z.coordMaxs = maxs
 }
+
+// CalculateVolume calculates the volume of the zone.
+func (z Zone) CalculateVolume() float32 {
+	volume := float32(1.0)
+	for i := 0; i < len(z.coordMins); i++ {
+		volume *= z.coordMaxs[i] - z.coordMins[i]
+	}
+	return volume
+}

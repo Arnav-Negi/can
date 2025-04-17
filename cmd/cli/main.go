@@ -31,7 +31,7 @@ func main() {
 
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()
-	go dht.StartNode(*selfIP, *port , fmt.Sprintf("%s:%d", *bootstrapIP, *bootstrapPort))
+	go dht.StartNode(*selfIP, *port, fmt.Sprintf("%s:%d", *bootstrapIP, *bootstrapPort))
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)
@@ -76,6 +76,11 @@ func main() {
 
 		args := strings.Split(command, " ")
 		switch args[0] {
+		case "info":
+			ip, mins, maxs := dht.Node.GetInfo()
+			fmt.Println("IP:", ip)
+			fmt.Println("Coordinate minimums of Zone:", mins)
+			fmt.Println("Coordinate maximums of Zone:", maxs)
 		case "put":
 			if len(args) != 3 {
 				fmt.Println("Usage: put <key> <value>")
@@ -114,13 +119,21 @@ func main() {
 			}
 		case "exit":
 			fmt.Println("Exiting...")
-			return
+			err := dht.Leave()
+			if err != nil {
+				fmt.Println("Error leaving DHT:", err)
+			} else {
+				fmt.Println("Left the DHT successfully.")
+				return
+			}
 		case "help":
 			fmt.Println("Available commands:")
 			fmt.Println("  put <key> <value> - Store a value in the DHT")
 			fmt.Println("  get <key>         - Retrieve a value from the DHT")
+			fmt.Println("  exit              - Exit the CLI and DHT")
 			fmt.Println("  delete <key>      - Delete a value from the DHT")
 			fmt.Println("  exit              - Exit the CLI")
+			fmt.Println("  info              - Print node's information")
 			fmt.Println("  help              - Show this help message")
 		default:
 			fmt.Println("Unknown command: ", command)

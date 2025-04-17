@@ -17,6 +17,10 @@ func NewDHT() *DHT {
 	}
 }
 
+func (dht *DHT) Info() (string, []float32, []float32) {
+	return dht.Node.GetInfo()
+}
+
 // StartNode This function starts the gRPC server for the DHT node.
 // It listens for incoming requests and handles them.
 // To be called using goroutines
@@ -35,8 +39,7 @@ func (dht *DHT) Join(bootstrapAddr string) error {
 // Leave This function is used to leave the CAN network.
 // It should gracefully leave the network and clean up resources.
 func (dht *DHT) Leave() error {
-	//TODO implement me
-	panic("implement me")
+	return dht.Node.LeaveImplementation()
 }
 
 // Put This function is used to store a value in the DHT.

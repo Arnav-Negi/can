@@ -25,19 +25,21 @@ func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) err
 
 	// if port was given 0, it was selected randomly,
 	port = lis.Addr().(*net.TCPAddr).Port
-	
+
 	// Start the gRPC server and
 	// extract IP address from the listener
 	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
-	
+
 	// Make temp connection to boostrapper,
 	// get the root CA and then start server using that
 	bootstrapConn, err := grpc.NewClient(
-		bootstrapAddr, 
+		bootstrapAddr,
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
 	)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	bootstrapClient := pb.NewBootstrapServiceClient(bootstrapConn)
 	if err := SetupNodeTLS(bootstrapClient, ip, port); err != nil {
@@ -48,18 +50,18 @@ func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) err
 	// Load TLS creds
 	tlsCreds, err := LoadTLSCredentials(node.IPAddress)
 	log.Printf("Loaded TLS credentials")
-	if err != nil { 
+	if err != nil {
 		node.logger.Fatalf("failed to load TLS credentials: %v", err)
-		return err 
+		return err
 	}
 
 	// Start serving with creds
-	s := grpc.NewServer(
-		grpc.Creds(tlsCreds), 
+	node.grpcServer = grpc.NewServer(
+		grpc.Creds(tlsCreds),
 		grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)),
 	)
-	pb.RegisterCANNodeServer(s, node)
-	if err := s.Serve(lis); err != nil {
+	pb.RegisterCANNodeServer(node.grpcServer, node)
+	if err := node.grpcServer.Serve(lis); err != nil {
 		node.logger.Fatalf("failed to serve: %v", err)
 	}
 
@@ -203,8 +205,8 @@ func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 
 func (node *Node) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
 	err := node.DeleteImplementation(req.Key, int(req.HashToUse))
-	if err != nil { 
-		return &pb.DeleteResponse{Success: false}, err 
+	if err != nil {
+		return &pb.DeleteResponse{Success: false}, err
 	}
 	return &pb.DeleteResponse{Success: true}, nil
 }
@@ -232,13 +234,15 @@ func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {
 	node.mu.RLock()
 	conn, exists := node.conns[ip]
 	node.mu.RUnlock()
-	if exists { return conn, nil }
+	if exists {
+		return conn, nil
+	}
 
 	// Create a new connection
 	conn, err := node.getGRPCConn(ip)
 	if err != nil {
 		return nil, status.Error(
-			codes.Unavailable, 
+			codes.Unavailable,
 			fmt.Sprintf("Failed to connect to %s: %v", ip, err),
 		)
 	}

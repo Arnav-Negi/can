@@ -11,11 +11,15 @@ service BootstrapService {
   // JoinInfo returns a list of active nodes in the network
   rpc JoinInfo(JoinInfoRequest) returns (JoinInfoResponse);
 
+  // Leave informs rpc of the leaving node
+  rpc Leave(BootstrapLeaveInfo) returns (BootstrapLeaveResponse);
+
   // GetRootCApem returns the root CA certificate
   rpc GetRootCApem(google.protobuf.Empty) returns (RootCApemResponse);
 
   // SignCSR signs a Certificate Signing Request (CSR) and returns the signed certificate
   rpc SignCSR(SignCSRRequest) returns (SignCSRResponse);
+
 }
 
 // JoinInfoRequest contains information about a node in the network
@@ -31,6 +35,12 @@ message JoinInfoResponse {
   string node_id = 3;
   repeated string active_nodes = 4; // IP Addresses of active nodes
 }
+
+message BootstrapLeaveInfo {
+  string node_address = 1;
+}
+
+message BootstrapLeaveResponse {}
 
 // RootCApemResponse contains the root CA certificate
 message RootCApemResponse {

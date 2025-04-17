@@ -91,10 +91,24 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 	return response, nil
 }
 
+// Leave implements the Leave RPC
+func (s *BootstrapServer) Leave(ctx context.Context, req *pb.BootstrapLeaveInfo) (*pb.BootstrapLeaveResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	nodeIP := req.NodeAddress
+	log.Printf("Node with IP %s leaving the CAN", nodeIP)
+	for i, node := range s.activeNodes {
+		if nodeIP == node {
+			s.activeNodes = append(s.activeNodes[:i], s.activeNodes[i+1:]...)
+		}
+	}
+	return &pb.BootstrapLeaveResponse{}, nil
+}
+
 // GetActiveNodes implements the GetActiveNodes RPC method
 func (s *BootstrapServer) GetRootCApem(ctx context.Context, req *emptypb.Empty) (*pb.RootCApemResponse, error) {
 	log.Printf("Received request for root CA PEM")
-	
+
 	rootCAPem, err := os.ReadFile("certs/ca-cert.pem")
 	if err != nil {
 		return nil, err
