@@ -15,6 +15,8 @@ clean:
 	- rm -rf ./cmd/cli/certs
 	- rm -rf ./testing/scale/logs
 	- rm -rf ./testing/scale/certs
+	- rm -rf ./testing/latency/logs
+	- rm -rf ./testing/latency/certs
 
 all:
 	make can
