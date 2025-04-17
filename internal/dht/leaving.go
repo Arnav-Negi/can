@@ -3,6 +3,8 @@ package dht
 import (
 	"context"
 	"fmt"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"sort"
 	"sync"
 	"time"
@@ -13,10 +15,11 @@ import (
 
 // LeaveImplementation handles the graceful leaving of a node from the CAN network
 func (node *Node) LeaveImplementation() error {
-	node.logger.Printf("Node %s is leaving the network", node.Info.NodeId)
+	node.logger.Printf("Node %s is leaving the networ k", node.Info.NodeId)
 
 	// first tell bootstrap server about leaving
-	bootstrapServ, err := node.getGRPCConn(node.bootstrapIP)
+	bootstrapServ, err := grpc.NewClient(node.bootstrapIP, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)))
 	if err != nil {
 		return err
 	}
