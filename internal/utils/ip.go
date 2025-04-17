@@ -2,20 +2,23 @@ package utils
 
 import "net"
 
-// GetIPAddress returns the IP address of the current device
-func GetIPAddress() (string, error) {
-	addrs, err := net.InterfaceAddrs()
-	if err != nil {
-		return "", err
+// ValidateIP validates that the ip provided by user is part of one of the interfaces
+func ValidateIP(ip string) bool {
+	if ip == "localhost" {
+		return true
 	}
-
+	addrs, _ := net.InterfaceAddrs()
 	for _, addr := range addrs {
-		if ipNet, ok := addr.(*net.IPNet); ok && !ipNet.IP.IsLoopback() {
-			if ipNet.IP.To4() != nil {
-				return ipNet.IP.String(), nil
-			}
+		var localIP net.IP
+		switch v := addr.(type) {
+		case *net.IPNet:
+			localIP = v.IP
+		case *net.IPAddr:
+			localIP = v.IP
+		}
+		if localIP != nil && localIP.String() == ip {
+			return true
 		}
 	}
-
-	return "", nil
+	return false
 }

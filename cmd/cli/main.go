@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/Arnav-Negi/can/internal/utils"
 	"log"
 	"strings"
 	"time"
@@ -12,28 +13,36 @@ import (
 )
 
 var (
-	port          = flag.Int("port", 0, "Port to listen on")
-	bootstrapPort = flag.Int("bootstrapPort", 5000, "Port to listen on")
+	selfIP = flag.String("ip", "localhost", "Node's IP address")
+	port   = flag.Int("port", 0, "Node's port")
+
+	bootstrapIP   = flag.String("bstrap-ip", "localhost", "Bootstrap IP address")
+	bootstrapPort = flag.Int("bstrap-port", 5000, "Bootstrap port")
 )
 
 func main() {
 	flag.Parse()
 	fmt.Println("Starting CAN DHT...")
 
+	// validate IP
+	if !utils.ValidateIP(*selfIP) {
+		log.Fatalf("Invalid IP: %s", *selfIP)
+	}
+
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()
-	go dht.StartNode(*port, fmt.Sprintf("localhost:%d", *bootstrapPort))
+	go dht.StartNode(*selfIP, *port , fmt.Sprintf("localhost:%d", *bootstrapPort))
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)
 	fmt.Println("Listening on :", dht.Node.IPAddress)
 
-	err := dht.Join(fmt.Sprintf("localhost:%d", *bootstrapPort))
+	err := dht.Join(fmt.Sprintf("%s:%d", *bootstrapIP, *bootstrapPort))
 	if err != nil {
 		fmt.Println("Error joining DHT:", err)
 		return
 	}
-	
+
 	fmt.Println("DHT started and listening on:", dht.Node.IPAddress)
 
 	// Start Heartbeat routine

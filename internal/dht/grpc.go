@@ -12,16 +12,10 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/Arnav-Negi/can/internal/topology"
-	"github.com/Arnav-Negi/can/internal/utils"
 	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
-func (node *Node) StartGRPCServer(port int, bootstrapAddr string) error {
-	ip, err := utils.GetIPAddress()
-	if err != nil {
-		node.logger.Fatalf("failed to get IP address: %v", err)
-	}
-
+func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) error {
 	// Make temp connection to boostrapper,
 	// get the root CA and then start server using that
 	bootstrapConn, err := grpc.NewClient(
@@ -37,21 +31,26 @@ func (node *Node) StartGRPCServer(port int, bootstrapAddr string) error {
 	}
 	bootstrapConn.Close()
 
+	// Setup for starting gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
+	if err != nil {
+		node.logger.Fatalf("failed to listen: %v", err)
+	}
+	node.logger.Printf("Listening on IP %s", lis.Addr().String())
+
+	// if port was given 0, it was selected randomly,
+	port = lis.Addr().(*net.TCPAddr).Port
+
+	// Start the gRPC server and
+	// extract IP address from the listener
+	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
+
 	// Load TLS creds
 	tlsCreds, err := LoadTLSCredentials()
 	log.Printf("Loaded TLS credentials")
 	if err != nil { 
 		node.logger.Fatalf("failed to load TLS credentials: %v", err)
 		return err 
-	}
-	
-
-	// Start the gRPC server and
-	// extract IP address from the listener
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
-	node.IPAddress = lis.Addr().String()
-	if err != nil {
-		node.logger.Fatalf("failed to listen: %v", err)
 	}
 
 	// Start serving with creds
@@ -68,9 +67,6 @@ func (node *Node) StartGRPCServer(port int, bootstrapAddr string) error {
 }
 
 func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinResponse, error) {
-	node.mu.Lock()
-	defer node.mu.Unlock()
-
 	// Check if coordinates are in this node's zone
 	coords := req.Coordinates
 	if !node.Info.Zone.Contains(coords) {
@@ -90,6 +86,8 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 		return nil, status.Errorf(codes.Unavailable, "Could not forward join request")
 	}
 
+	node.mu.Lock()
+	defer node.mu.Unlock()
 	// Split the zone and transfer data
 	newZone, transferredData, err := node.splitZone(coords)
 	if err != nil {
@@ -118,9 +116,10 @@ func (node *Node) Join(ctx context.Context, req *pb.JoinRequest) (*pb.JoinRespon
 	}
 
 	// Log the join event
-	node.logger.Printf("Node %s joined the network with zone: %v", node.IPAddress, newZone)
+	node.logger.Printf("Node %s joined the network with zone: %v", req.Address, newZone)
 	node.logger.Printf("Updated neighbors: %v", pbNeighbors)
 	node.logger.Printf("Current zone: %v", node.Info.Zone)
+	node.logger.Printf("My neighbors: %v", node.RoutingTable.Neighbours)
 
 	return &pb.JoinResponse{
 		AssignedZone:    zoneToProto(newZone),
@@ -146,6 +145,15 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 		Zone:      neighborZone,
 	}
 
+	// Iterate through existing neighbors to check if the node is already present
+	// If present already, remove it
+	for i, n := range node.RoutingTable.Neighbours {
+		if n.IpAddress == req.Neighbor.Address {
+			node.RoutingTable.Neighbours = append(node.RoutingTable.Neighbours[:i], node.RoutingTable.Neighbours[i+1:]...)
+			break
+		}
+	}
+
 	// Check if zones are adjacent before adding
 	if !node.Info.Zone.IsAdjacent(neighborZone) {
 		return &pb.AddNeighborResponse{Success: false}, nil
@@ -154,7 +162,8 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 	// Add the node to our routing table
 	node.RoutingTable.AddNode(neighborInfo)
 
-	node.logger.Printf("Added neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+	node.logger.Printf("Added/Updated neighbor: %s with zone: %v", req.Neighbor.Address, neighborZone)
+	node.logger.Printf("Current neighbors: %v", node.RoutingTable.Neighbours)
 
 	return &pb.AddNeighborResponse{Success: true}, nil
 }
