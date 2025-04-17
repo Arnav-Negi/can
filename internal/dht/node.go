@@ -326,6 +326,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	node.logger.SetOutput(file)
 	node.logger.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
+		FullTimestamp: true,
 	})
 
 	// If no CAN nodes in network, take whole zone

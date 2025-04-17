@@ -25,7 +25,9 @@ func main() {
 	fmt.Println("Starting CAN DHT...")
 
 	// validate IP
-	utils.ValidateIP(*selfIP)
+	if !utils.ValidateIP(*selfIP) {
+		log.Fatalf("Invalid IP: %s", *selfIP)
+	}
 
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()

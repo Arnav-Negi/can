@@ -15,7 +15,7 @@ import (
 
 func (node *Node) StartGRPCServer(ip string, port int) error {
 	// Start the gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
 	if err != nil {
 		node.logger.Fatalf("failed to listen: %v", err)
 	}

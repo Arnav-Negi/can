@@ -9,12 +9,14 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 const (
 	defaultPort       = 5000 // Default port for the bootstrap server
 	defaultDimensions = 2    // Default CAN dimensions
 	defaultNumHashes  = 3    // Default number of hash functions
+	defaultIp         = "0.0.0.0"
 )
 
 type IDService struct {
@@ -24,14 +26,15 @@ type IDService struct {
 
 func newIDService() *IDService {
 	return &IDService{
+		mu:      sync.Mutex{},
 		counter: 0,
 	}
 }
 
 func (idService *IDService) NewId() string {
 	idService.mu.Lock()
-	defer idService.mu.Unlock()
 	idService.counter++
+	idService.mu.Unlock()
 	return fmt.Sprintf("node-%d", idService.counter)
 }
 
@@ -68,15 +71,20 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 
 	// Create a response with the CAN network dimensions, server's node ID,
 	// and the list of active nodes
+	startTime := time.Now()
 	response := &pb.JoinInfoResponse{
 		Dimensions:  s.dimensions,
 		NumHashes:   s.numHashes,
 		NodeId:      s.idService.NewId(),
 		ActiveNodes: s.getActiveNodes(),
 	}
-
+	endTime := time.Now()
+	log.Printf("Join %s resp info took: %v", response.NodeId, endTime.Sub(startTime))
+	startTime = time.Now()
 	// Add the requesting node to active nodes if not already present
 	s.addNode(req.Address)
+	endTime = time.Now()
+	log.Printf("Join %s add node info took: %v", response.NodeId, endTime.Sub(startTime))
 
 	return response, nil
 }
@@ -140,6 +148,7 @@ func main() {
 	port := flag.Int("port", defaultPort, "Server port")
 	dimensions := flag.Uint("dim", defaultDimensions, "CAN dimensions")
 	numHashes := flag.Uint("num_hashes", defaultNumHashes, "Number of hash functions")
+	ip := flag.String("ip", defaultIp, "IP address")
 	flag.Parse()
 
 	if *dimensions <= 0 {
@@ -147,7 +156,7 @@ func main() {
 	}
 
 	// Create a listener on the specified port
-	listener, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0:%d", *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -161,7 +170,7 @@ func main() {
 
 	// print all IPs to be accessed
 	PrintAllIPs()
-	log.Printf("Port: %d", *port)
+	log.Printf("IP: %s, Port: %d", *ip, *port)
 	log.Printf("CAN dimensions: %d", server.dimensions)
 
 	// Start serving requests

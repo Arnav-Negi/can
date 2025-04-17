@@ -10,11 +10,43 @@ import (
 	"time"
 )
 
+type Barrier struct {
+	total    int
+	arrived  int
+	released int
+	cond     *sync.Cond
+}
+
+func NewBarrier(n int) *Barrier {
+	return &Barrier{
+		total: n,
+		cond:  sync.NewCond(&sync.Mutex{}),
+	}
+}
+func (b *Barrier) Wait() {
+	b.cond.L.Lock()
+
+	gen := b.released // track current generation
+
+	b.arrived++
+	if b.arrived == b.total {
+		// All arrived: reset and start next gen
+		b.arrived = 0
+		b.released++
+		b.cond.Broadcast()
+	} else {
+		for gen == b.released {
+			b.cond.Wait()
+		}
+	}
+
+	b.cond.L.Unlock()
+}
+
 func main() {
 	// Define command line flags
-	bootstrapIP := flag.String("bootstrap", "127.0.0.1:5000", "IP:Port of the bootstrap node")
+	bootstrapIP := flag.String("bootstrap", "localhost:5000", "IP:Port of the bootstrap node")
 	numNodes := flag.Int("nodes", 5, "Number of DHT nodes to create")
-	operationTimeoutSec := flag.Int("op-timeout", 2, "Seconds to wait between operations")
 	flag.Parse()
 
 	log.Printf("Starting DHT scale test with %d nodes, bootstrap: %s", *numNodes, *bootstrapIP)
@@ -22,19 +54,21 @@ func main() {
 	// Create a wait group to wait for all nodes to complete their operations
 	var wg sync.WaitGroup
 	wg.Add(*numNodes)
+	bar := NewBarrier(*numNodes)
+	mu := &sync.Mutex{}
 
 	// Launch worker nodes
 	for i := 0; i < *numNodes; i++ {
 		go func(nodeID int) {
 			defer wg.Done()
-			time.Sleep(time.Duration(i) * 20 * time.Millisecond)
-
 			// Create a new DHT node
 			dht := can.NewDHT()
 
+			time.Sleep(time.Duration(i) * 20 * time.Millisecond)
+
 			// Start the node on a random port
 			go func() {
-				err := dht.StartNode(0) // 0 for random port
+				err := dht.StartNode("localhost", 5050+nodeID) // 0 for random port
 				if err != nil {
 					//logMutex.Lock()
 					log.Printf("ERROR Node %d failed to start: %v", nodeID, err)
@@ -43,27 +77,31 @@ func main() {
 			}()
 
 			// Wait a short time for node to initialize
-			time.Sleep(time.Duration(*numNodes) * 30 * time.Millisecond)
+			time.Sleep(10 * time.Millisecond)
 
 			// Join the DHT network using bootstrap
-			//logMutex.Lock()
+			bar.Wait()
+
+			// get mutex
+			mu.Lock()
 			log.Printf("Node %d: joining network via %s", nodeID, *bootstrapIP)
-			//logMutex.Unlock()
 
 			err := dht.Join(*bootstrapIP)
+
+			mu.Unlock()
 			if err != nil {
 				//logMutex.Lock()
 				log.Printf("ERROR Node %d failed to join network: %v", nodeID, err)
 				//logMutex.Unlock()
 			}
 
-			// Wait for network stabilization
-			time.Sleep(time.Duration(*operationTimeoutSec) * 5 * time.Second)
-
 			// Generate unique key-value pairs for this node
 			keyPrefix := fmt.Sprintf("node-%d-key-", nodeID)
 			valuePrefix := fmt.Sprintf("node-%d-value-", nodeID)
 			numPairs := 5 + rand.Intn(5) // 5-9 pairs per node
+
+			// wait for all nodes to join
+			bar.Wait()
 
 			// Store our key-value pairs
 			kvPairs := make(map[string][]byte)
@@ -88,7 +126,7 @@ func main() {
 			}
 
 			// Wait for data to propagate
-			time.Sleep(time.Duration(*operationTimeoutSec) * time.Second)
+			bar.Wait()
 
 			// Retrieve our key-value pairs and verify
 			for key, expectedValue := range kvPairs {
@@ -118,6 +156,8 @@ func main() {
 				// Brief pause between operations
 				time.Sleep(50 * time.Millisecond)
 			}
+
+			bar.Wait()
 
 			// Now try to retrieve other nodes' data
 			// Each node will try to get a key from the previous node
