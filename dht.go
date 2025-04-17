@@ -21,8 +21,8 @@ func NewDHT() *DHT {
 // It listens for incoming requests and handles them.
 // To be called using goroutines
 // port: Port to listen on, 0 for random port
-func (dht *DHT) StartNode(port int) error {
-	return dht.Node.StartGRPCServer(port)
+func (dht *DHT) StartNode(ip string, port int) error {
+	return dht.Node.StartGRPCServer(ip, port)
 }
 
 // Join Bootstrap This starts the DHT, might take some time to set up and join
@@ -44,7 +44,7 @@ func (dht *DHT) Leave() error {
 func (dht *DHT) Put(key string, value []byte) error {
 	return dht.Node.PutImplementation(
 		key, value,
-		-1,  // The hash ID to query, -1 for all
+		-1, // The hash ID to query, -1 for all
 	)
 }
 
@@ -52,7 +52,7 @@ func (dht *DHT) Put(key string, value []byte) error {
 // Error if the key does not exist or unable to retrieve the value.
 func (dht *DHT) Get(key string) ([]byte, error) {
 	return dht.Node.GetImplementation(
-		key, 
-		-1,  // The hash ID to query, -1 for all
+		key,
+		-1, // The hash ID to query, -1 for all
 	)
 }

@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 	pb "github.com/Arnav-Negi/can/protofiles"
-	"github.com/google/uuid"
 	"google.golang.org/grpc"
 	"log"
 	"net"
@@ -16,7 +15,27 @@ const (
 	defaultPort       = 5000 // Default port for the bootstrap server
 	defaultDimensions = 2    // Default CAN dimensions
 	defaultNumHashes  = 3    // Default number of hash functions
+	defaultIp         = "0.0.0.0"
 )
+
+type IDService struct {
+	mu      sync.Mutex
+	counter int
+}
+
+func newIDService() *IDService {
+	return &IDService{
+		mu:      sync.Mutex{},
+		counter: 0,
+	}
+}
+
+func (idService *IDService) NewId() string {
+	idService.mu.Lock()
+	idService.counter++
+	idService.mu.Unlock()
+	return fmt.Sprintf("node-%d", idService.counter)
+}
 
 // BootstrapServer implements the BootstrapService gRPC service
 type BootstrapServer struct {
@@ -29,6 +48,9 @@ type BootstrapServer struct {
 
 	// Mutex for synchronizing access to activeNodes
 	mu sync.RWMutex
+
+	// id service to generate IDs
+	idService *IDService
 }
 
 // NewBootstrapServer creates a new bootstrap server
@@ -38,6 +60,7 @@ func NewBootstrapServer(dimensions uint32, numHashes uint32) *BootstrapServer {
 		numHashes:   numHashes,
 		activeNodes: make([]string, 0),
 		mu:          sync.RWMutex{},
+		idService:   newIDService(),
 	}
 }
 
@@ -50,7 +73,7 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 	response := &pb.JoinInfoResponse{
 		Dimensions:  s.dimensions,
 		NumHashes:   s.numHashes,
-		NodeId:      uuid.New().String(),
+		NodeId:      s.idService.NewId(),
 		ActiveNodes: s.getActiveNodes(),
 	}
 
@@ -89,11 +112,37 @@ func (s *BootstrapServer) getActiveNodes() []string {
 	return nodes
 }
 
+func PrintAllIPs() {
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue // ignore down or loopback interfaces
+		}
+		addrs, _ := iface.Addrs()
+		for _, addr := range addrs {
+			var ip net.IP
+			switch v := addr.(type) {
+			case *net.IPNet:
+				ip = v.IP
+			case *net.IPAddr:
+				ip = v.IP
+			}
+			if ip != nil && ip.To4() != nil {
+				log.Printf("Found IP: %s", ip)
+			}
+		}
+	}
+}
+
 func main() {
 	// Parse command line arguments
 	port := flag.Int("port", defaultPort, "Server port")
 	dimensions := flag.Uint("dim", defaultDimensions, "CAN dimensions")
 	numHashes := flag.Uint("num_hashes", defaultNumHashes, "Number of hash functions")
+	ip := flag.String("ip", defaultIp, "IP address")
 	flag.Parse()
 
 	if *dimensions <= 0 {
@@ -101,7 +150,7 @@ func main() {
 	}
 
 	// Create a listener on the specified port
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", *port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", *ip, *port))
 	if err != nil {
 		log.Fatalf("Failed to listen: %v", err)
 	}
@@ -113,7 +162,9 @@ func main() {
 	server := NewBootstrapServer(uint32(*dimensions), uint32(*numHashes))
 	pb.RegisterBootstrapServiceServer(grpcServer, server)
 
-	log.Printf("Bootstrap server started on port %d", *port)
+	// print all IPs to be accessed
+	PrintAllIPs()
+	log.Printf("IP: %s, Port: %d", *ip, *port)
 	log.Printf("CAN dimensions: %d", server.dimensions)
 
 	// Start serving requests

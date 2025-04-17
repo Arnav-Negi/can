@@ -49,11 +49,11 @@ func NewNode() *Node {
 		NeighInfo:     make([]topology.NodeInfo, 0),
 		lastHeartbeat: make(map[string]time.Time),
 		KVStore:       store.NewMemoryStore(),
-		QueryCache:    nil, // TODO: Make this configurable
+		QueryCache:    nil,
 		mu:            sync.RWMutex{},
 		logger:        logrus.New(),
 	}
-	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second)
+	retNode.QueryCache = retNode.GetNewCache(128, 10*time.Second) // TODO: Make this configurable
 	return retNode
 }
 
@@ -173,6 +173,11 @@ func (node *Node) updateNeighbors(newZone topology.Zone) []topology.NodeInfo {
 		if !node.Info.Zone.IsAdjacent(neighbor.Zone) {
 			nodesToRemove = append(nodesToRemove, neighbor.NodeId)
 		}
+	}
+
+	// Notify and update the neighbors about our updated zone
+	if err := node.NotifyNeighbors(); err != nil {
+		node.logger.Printf("Warning: Failed to update some neighbors: %v", err)
 	}
 
 	// Remove neighbors that are no longer adjacent
@@ -301,9 +306,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	// Initialise node info
-	node.mu.Lock()
 	dims := uint(joinInfo.Dimensions)
 	numHashes := uint(joinInfo.NumHashes)
+	node.mu.Lock()
 	node.RoutingTable = routing.NewRoutingTable(dims, numHashes)
 	node.Info = &topology.NodeInfo{
 		NodeId:    joinInfo.NodeId,
@@ -320,7 +325,9 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 	node.logger.SetOutput(file)
 	node.logger.SetFormatter(&logrus.TextFormatter{
-		DisableColors: true,
+		DisableColors:   true,
+		FullTimestamp:   true,
+		TimestampFormat: "2006-01-02 15:04:05.000000",
 	})
 
 	// If no CAN nodes in network, take whole zone
@@ -351,7 +358,6 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 	// use join response to update node info
 	node.mu.Lock()
-	defer node.mu.Unlock()
 	node.Info.Zone = topology.NewZoneFromProto(joinResponse.AssignedZone)
 
 	// assigning neighbours
@@ -367,6 +373,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	for _, kv := range joinResponse.TransferredData {
 		node.KVStore.Insert(kv.Key, kv.Value)
 	}
+	node.mu.Unlock()
 
 	// Notify all neighbors about our existence
 	if err = node.NotifyNeighbors(); err != nil {
