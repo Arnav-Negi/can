@@ -4,6 +4,9 @@ import "net"
 
 // ValidateIP validates that the ip provided by user is part of one of the interfaces
 func ValidateIP(ip string) bool {
+	if ip == "localhost" {
+		return true
+	}
 	addrs, _ := net.InterfaceAddrs()
 	for _, addr := range addrs {
 		var localIP net.IP
