@@ -3,18 +3,20 @@ package dht
 import (
 	"context"
 	"fmt"
+	"log"
 	"net"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 
 	"github.com/Arnav-Negi/can/internal/topology"
 	pb "github.com/Arnav-Negi/can/protofiles"
 )
 
-func (node *Node) StartGRPCServer(ip string, port int) error {
-	// Start the gRPC server
+func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) error {
+	// Setup for starting gRPC server
 	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
 	if err != nil {
 		node.logger.Fatalf("failed to listen: %v", err)
@@ -23,18 +25,44 @@ func (node *Node) StartGRPCServer(ip string, port int) error {
 
 	// if port was given 0, it was selected randomly,
 	port = lis.Addr().(*net.TCPAddr).Port
-
+	
+	// Start the gRPC server and
 	// extract IP address from the listener
 	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
+	
+	// Make temp connection to boostrapper,
+	// get the root CA and then start server using that
+	bootstrapConn, err := grpc.NewClient(
+		bootstrapAddr, 
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
+	)
+	if err != nil { return err }
 
-	if err != nil {
-		node.logger.Fatalf("failed to listen: %v", err)
+	bootstrapClient := pb.NewBootstrapServiceClient(bootstrapConn)
+	if err := SetupNodeTLS(bootstrapClient, ip, port); err != nil {
+		return fmt.Errorf("TLS setup failed: %w", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)))
+	bootstrapConn.Close()
+
+	// Load TLS creds
+	tlsCreds, err := LoadTLSCredentials(node.IPAddress)
+	log.Printf("Loaded TLS credentials")
+	if err != nil { 
+		node.logger.Fatalf("failed to load TLS credentials: %v", err)
+		return err 
+	}
+
+	// Start serving with creds
+	s := grpc.NewServer(
+		grpc.Creds(tlsCreds), 
+		grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)),
+	)
 	pb.RegisterCANNodeServer(s, node)
 	if err := s.Serve(lis); err != nil {
 		node.logger.Fatalf("failed to serve: %v", err)
 	}
+
 	return nil
 }
 
@@ -173,6 +201,14 @@ func (node *Node) Put(ctx context.Context, req *pb.PutRequest) (*pb.PutResponse,
 	return &pb.PutResponse{Success: true}, nil
 }
 
+func (node *Node) Delete(ctx context.Context, req *pb.DeleteRequest) (*pb.DeleteResponse, error) {
+	err := node.DeleteImplementation(req.Key, int(req.HashToUse))
+	if err != nil { 
+		return &pb.DeleteResponse{Success: false}, err 
+	}
+	return &pb.DeleteResponse{Success: true}, nil
+}
+
 func (node *Node) SendNeighbourInfo(ctx context.Context, req *pb.NeighbourInfoRequest) (*pb.NeighbourInfoResponse, error) {
 	node.mu.Lock()
 	defer node.mu.Unlock()
@@ -196,14 +232,15 @@ func (node *Node) getClientConn(ip string) (*grpc.ClientConn, error) {
 	node.mu.RLock()
 	conn, exists := node.conns[ip]
 	node.mu.RUnlock()
-	if exists {
-		return conn, nil
-	}
+	if exists { return conn, nil }
 
 	// Create a new connection
 	conn, err := node.getGRPCConn(ip)
 	if err != nil {
-		return nil, status.Error(codes.Unavailable, fmt.Sprintf("Failed to connect to %s: %v", ip, err))
+		return nil, status.Error(
+			codes.Unavailable, 
+			fmt.Sprintf("Failed to connect to %s: %v", ip, err),
+		)
 	}
 
 	// Store the connection in the map
