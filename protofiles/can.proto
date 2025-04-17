@@ -130,8 +130,8 @@ message LeaveResponse {
 
 message DFSRequest {
   string leaving_node_id = 1;
-  Zone leaving_zone = 2;
-  int32 split_dim = 3;
+  Zone parent_zone = 2;
+  string parent_node_id = 3;
 }
 
 message DFSResponse {

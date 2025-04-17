@@ -30,7 +30,7 @@ func (node *Node) LeaveImplementation() error {
 	}
 	client := pb.NewCANNodeClient(conn)
 
-	// Send leave request to smallest neighbor
+	// Send leave request to the smallest neighbor
 	leaveResponse, err := client.InitiateLeave(context.Background(), &pb.LeaveRequest{
 		LeavingNodeId: node.Info.NodeId,
 		LeavingZone:   zoneToProto(node.Info.Zone),
@@ -45,7 +45,10 @@ func (node *Node) LeaveImplementation() error {
 	}
 
 	// Gracefully shutdown by closing connections
-	node.closeAllConnections()
+	err = node.closeAllConnections()
+	if err != nil {
+		return err
+	}
 	node.logger.Printf("Node %s has successfully left the network", node.Info.NodeId)
 	return nil
 }
@@ -82,21 +85,32 @@ func (node *Node) findSmallestNeighbor() (topology.NodeInfo, error) {
 		return neighbors[i].volume < neighbors[j].volume
 	})
 
+	minVolume := neighbors[0].volume
+	// Iterate through the neighbors which have minVolume as volume
+	// If any of them is a sibling of Node, return that
+	for _, neighbor := range neighbors {
+		if neighbor.volume == minVolume && node.areSiblings(node.Info.Zone, neighbor.info.Zone) {
+			return neighbor.info, nil
+		}
+	}
+
 	return neighbors[0].info, nil
 }
 
 // closeAllConnections closes all gRPC connections
-func (node *Node) closeAllConnections() {
+func (node *Node) closeAllConnections() error {
 	node.mu.Lock()
 	defer node.mu.Unlock()
 
 	for addr, conn := range node.conns {
 		err := conn.Close()
 		if err != nil {
-			return
+			return fmt.Errorf("failed to close connection to %s: %v", addr, err)
 		}
 		delete(node.conns, addr)
 	}
+	node.logger.Printf("Closed all connections")
+	return nil
 }
 
 // InitiateLeave handles a request from a node that wants to leave
@@ -142,8 +156,7 @@ func (node *Node) findTakeoverNodeDFS(leavingZone topology.Zone, leavingNodeId s
 	}
 
 	// Get the dimension with the shortest span (the last dimension that was split)
-	//dims := len(leavingZone.GetCoordMins())
-	splitDim := node.findLastSplitDimension(leavingZone)
+	splitDim := node.findLastSplitDimension(node.Info.Zone)
 
 	// Find a neighbor along the split dimension
 	for _, neighbor := range node.RoutingTable.Neighbours {
@@ -153,9 +166,9 @@ func (node *Node) findTakeoverNodeDFS(leavingZone topology.Zone, leavingNodeId s
 		}
 
 		// Check if this neighbor abuts the leaving node along the split dimension
-		if node.abutsDimension(neighbor.Zone, leavingZone, splitDim) {
+		if node.abutsDimension(neighbor.Zone, node.Info.Zone, splitDim) {
 			// If this node's zone is smaller, forward the DFS request
-			if neighbor.Zone.CalculateVolume() <= leavingZone.CalculateVolume() {
+			if neighbor.Zone.CalculateVolume() <= node.Info.Zone.CalculateVolume() {
 				conn, err := node.getGRPCConn(neighbor.IpAddress)
 				if err != nil {
 					node.logger.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
@@ -165,8 +178,8 @@ func (node *Node) findTakeoverNodeDFS(leavingZone topology.Zone, leavingNodeId s
 				client := pb.NewCANNodeClient(conn)
 				response, err := client.PerformDFS(context.Background(), &pb.DFSRequest{
 					LeavingNodeId: leavingNodeId,
-					LeavingZone:   zoneToProto(leavingZone),
-					SplitDim:      int32(splitDim),
+					ParentZone:    zoneToProto(node.Info.Zone),
+					ParentNodeId:  node.Info.NodeId,
 				})
 
 				if err == nil && response.FoundSibling {
@@ -191,7 +204,7 @@ func (node *Node) findLastSplitDimension(zone topology.Zone) int {
 
 	for i := 0; i < dims; i++ {
 		span := zone.GetCoordMaxs()[i] - zone.GetCoordMins()[i]
-		if span < minSpan {
+		if span <= minSpan {
 			minSpan = span
 			splitDim = i
 		}
@@ -232,7 +245,7 @@ func (node *Node) areSiblings(zone1, zone2 topology.Zone) bool {
 
 	// To be siblings, zones must match in all dimensions except one,
 	// and they must abut perfectly in that dimension
-	return matchingDims == dims-1 && splitDim != -1
+	return matchingDims == dims-1 && splitDim == node.findLastSplitDimension(zone1)
 }
 
 // abutsDimension checks if two zones abut along a specific dimension
@@ -247,13 +260,12 @@ func (node *Node) abutsDimension(zone1, zone2 topology.Zone, dim int) bool {
 
 // PerformDFS handles a DFS request from another node
 func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSResponse, error) {
-	node.logger.Printf("Received DFS request for node %s", req.LeavingNodeId)
+	node.logger.Printf("Received DFS request for node %s from node %s", req.LeavingNodeId, req.ParentNodeId)
 
-	leavingZone := topology.NewZoneFromProto(req.LeavingZone)
-	splitDim := int(req.SplitDim)
+	parentZone := topology.NewZoneFromProto(req.ParentZone)
 
 	// Check if this node and the leaving node are siblings
-	if node.areSiblings(node.Info.Zone, leavingZone) {
+	if node.areSiblings(node.Info.Zone, parentZone) {
 		return &pb.DFSResponse{
 			FoundSibling:    true,
 			TakeoverNodeId:  node.Info.NodeId,
@@ -261,6 +273,8 @@ func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSRe
 			TakeoverZone:    zoneToProto(node.Info.Zone),
 		}, nil
 	}
+
+	splitDim := node.findLastSplitDimension(node.Info.Zone)
 
 	// Continue DFS with neighbors
 	for _, neighbor := range node.RoutingTable.Neighbours {
@@ -270,9 +284,9 @@ func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSRe
 		}
 
 		// Check if this neighbor abuts the leaving node along the split dimension
-		if node.abutsDimension(neighbor.Zone, leavingZone, splitDim) {
+		if node.abutsDimension(neighbor.Zone, node.Info.Zone, splitDim) {
 			// If this node's zone is smaller, forward the DFS request
-			if neighbor.Zone.CalculateVolume() <= leavingZone.CalculateVolume() {
+			if neighbor.Zone.CalculateVolume() <= node.Info.Zone.CalculateVolume() {
 				conn, err := node.getGRPCConn(neighbor.IpAddress)
 				if err != nil {
 					node.logger.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
@@ -280,7 +294,11 @@ func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSRe
 				}
 
 				client := pb.NewCANNodeClient(conn)
-				response, err := client.PerformDFS(context.Background(), req)
+				response, err := client.PerformDFS(context.Background(), &pb.DFSRequest{
+					LeavingNodeId: req.LeavingNodeId,
+					ParentZone:    zoneToProto(node.Info.Zone),
+					ParentNodeId:  node.Info.NodeId,
+				})
 
 				if err == nil && response.FoundSibling {
 					return response, nil
