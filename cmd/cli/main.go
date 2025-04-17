@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	selfIP = flag.String("ip", "localhost", "Node's IP address")
+	selfIP = flag.String("ip", "127.0.0.1", "Node's IP address")
 	port   = flag.Int("port", 0, "Node's port")
 
-	bootstrapIP   = flag.String("bstrap-ip", "localhost", "Bootstrap IP address")
+	bootstrapIP   = flag.String("bstrap-ip", "127.0.0.1", "Bootstrap IP address")
 	bootstrapPort = flag.Int("bstrap-port", 5000, "Bootstrap port")
 )
 
@@ -31,7 +31,7 @@ func main() {
 
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()
-	go dht.StartNode(*selfIP, *port , fmt.Sprintf("localhost:%d", *bootstrapPort))
+	go dht.StartNode(*selfIP, *port , fmt.Sprintf("%s:%d", *bootstrapIP, *bootstrapPort))
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)

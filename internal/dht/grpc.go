@@ -16,6 +16,20 @@ import (
 )
 
 func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) error {
+	// Setup for starting gRPC server
+	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
+	if err != nil {
+		node.logger.Fatalf("failed to listen: %v", err)
+	}
+	node.logger.Printf("Listening on IP %s", lis.Addr().String())
+
+	// if port was given 0, it was selected randomly,
+	port = lis.Addr().(*net.TCPAddr).Port
+	
+	// Start the gRPC server and
+	// extract IP address from the listener
+	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
+	
 	// Make temp connection to boostrapper,
 	// get the root CA and then start server using that
 	bootstrapConn, err := grpc.NewClient(
@@ -26,27 +40,13 @@ func (node *Node) StartGRPCServer(ip string, port int, bootstrapAddr string) err
 	if err != nil { return err }
 
 	bootstrapClient := pb.NewBootstrapServiceClient(bootstrapConn)
-	if err := SetupNodeTLS(bootstrapClient, ip); err != nil {
+	if err := SetupNodeTLS(bootstrapClient, ip, port); err != nil {
 		return fmt.Errorf("TLS setup failed: %w", err)
 	}
 	bootstrapConn.Close()
 
-	// Setup for starting gRPC server
-	lis, err := net.Listen("tcp", fmt.Sprintf("%s:%d", ip, port))
-	if err != nil {
-		node.logger.Fatalf("failed to listen: %v", err)
-	}
-	node.logger.Printf("Listening on IP %s", lis.Addr().String())
-
-	// if port was given 0, it was selected randomly,
-	port = lis.Addr().(*net.TCPAddr).Port
-
-	// Start the gRPC server and
-	// extract IP address from the listener
-	node.IPAddress = fmt.Sprintf("%s:%d", ip, port)
-
 	// Load TLS creds
-	tlsCreds, err := LoadTLSCredentials()
+	tlsCreds, err := LoadTLSCredentials(node.IPAddress)
 	log.Printf("Loaded TLS credentials")
 	if err != nil { 
 		node.logger.Fatalf("failed to load TLS credentials: %v", err)

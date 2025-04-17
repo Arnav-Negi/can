@@ -148,11 +148,17 @@ func (s *BootstrapServer) SignCSR(ctx context.Context, req *pb.SignCSRRequest) (
 	}
 
 	// Parse IP SAN if provided
+	// Replace localhost with 127.0.0.1 if present
 	var ipSANs []net.IP
-	if req.IpSan != "" {
-		ip := net.ParseIP(req.IpSan)
+	ipStr := req.IpSan
+	if ipStr == "localhost" {
+		log.Printf("IP SAN: %s", ipStr)
+		ipStr = "127.0.0.1"
+	}
+	if ipStr != "" {
+		ip := net.ParseIP(ipStr)
 		if ip == nil {
-			return nil, fmt.Errorf("invalid IP SAN: %s", req.IpSan)
+			return nil, fmt.Errorf("invalid IP SAN: %q", ipStr)
 		}
 		ipSANs = append(ipSANs, ip)
 	}

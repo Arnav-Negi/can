@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"log"
 	"math/rand"
 	"os"
 	"sync"
@@ -40,7 +41,7 @@ type Node struct {
 
 // NewNode This function initializes a new Node instance.
 func NewNode() *Node {
-	ipAddress := "localhost:0"
+	ipAddress := "127.0.0.1:0"
 
 	retNode := &Node{
 		conns:         make(map[string]*grpc.ClientConn),
@@ -67,7 +68,7 @@ func GetRandomCoordinates(dims uint) []float32 {
 
 func (node *Node) getGRPCConn(addr string) (*grpc.ClientConn, error) {
 	// Load TLS credentials
-	tlsCreds, err := LoadTLSCredentials()
+	tlsCreds, err := LoadTLSCredentials(node.IPAddress)
 	if err != nil { return nil, err }
 
 	conn, err := grpc.NewClient(
@@ -325,7 +326,12 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	node.mu.Unlock()
 
 	// Set up logger file and open file with node.logger
-	logFilePath := "./logs/" + node.Info.NodeId + ".log"
+	logDir := "./logs"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return err
+	}
+
+	logFilePath := logDir + "/" + node.Info.NodeId + ".log"
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil { return err }
 	node.logger.SetOutput(file)
@@ -337,14 +343,15 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 
 	// If no CAN nodes in network, take whole zone
 	if len(joinInfo.ActiveNodes) == 0 { return nil }
-
+	
 	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
 	randCoords := GetRandomCoordinates(dims) // Joining point P
 	conn, err := node.getClientConn(joinInfo.ActiveNodes[randIndex])
 	if err != nil { return err }
-
+	
 	canServiceClient := pb.NewCANNodeClient(conn)
+	log.Printf("HALLO0")
 	joinResponse, err := canServiceClient.Join(
 		context.Background(),
 		&pb.JoinRequest{
@@ -353,7 +360,11 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address:     node.IPAddress,
 		},
 	)
+	log.Printf("HALLO1")
 	if err != nil { return err }
+	
+	log.Printf("HALLO2")
+
 
 	// use join response to update node info
 	node.mu.Lock()
@@ -368,17 +379,21 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 		})
 	}
 
+
 	// Store the transferred data
 	for _, kv := range joinResponse.TransferredData {
 		node.KVStore.Insert(kv.Key, kv.Value)
 	}
 	node.mu.Unlock()
 
+
+
 	// Notify all neighbors about our existence
 	if err = node.NotifyNeighbors(); err != nil {
 		node.logger.Printf("Warning: Failed to notify some neighbors: %v", err)
 	}
 
+	
 	// Log the join event
 	node.logger.Printf("Node %s joined the network with zone %v", node.Info.NodeId, node.Info.Zone)
 

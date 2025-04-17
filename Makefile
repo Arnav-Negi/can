@@ -11,7 +11,10 @@ certs:
 	cd ./cmd/cli/certs/ && ./gen.sh
 
 clean:
-	rm -rf ./cmd/cli/logs/*
+	- rm -rf ./cmd/cli/logs
+	- rm -rf ./cmd/cli/certs
+	- rm -rf ./testing/scale/logs
+	- rm -rf ./testing/scale/certs
 
 all:
 	make can

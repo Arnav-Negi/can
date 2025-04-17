@@ -29,10 +29,12 @@ go.work.sum
 .vscode
 
 # logs
-cmd/cli/logs/*
+cmd/cli/logs
+testing/scale/logs
+testing/latency/logs
 
 # certs
 cmd/bootstrapper/certs/*
-cmd/cli/certs/node*
-cmd/cli/certs/root*
-cmd/cli/cert/*
+cmd/cli/certs
+testing/latency/certs
+testing/scale/certs
