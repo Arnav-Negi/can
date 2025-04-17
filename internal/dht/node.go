@@ -37,7 +37,8 @@ type Node struct {
 
 	logger *logrus.Logger
 	// server to stop
-	grpcServer *grpc.Server
+	grpcServer  *grpc.Server
+	bootstrapIP string
 }
 
 // NewNode This function initializes a new Node instance.
@@ -290,6 +291,7 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Query the bootstrap node for info
+	node.bootstrapIP = bootstrapAddr
 	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
 	if err != nil {
 		return err

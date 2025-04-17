@@ -83,6 +83,20 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 	return response, nil
 }
 
+// Leave implements the Leave RPC
+func (s *BootstrapServer) Leave(ctx context.Context, req *pb.BootstrapLeaveInfo) (*pb.BootstrapLeaveResponse, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	nodeIP := req.NodeAddress
+	log.Printf("Node with IP %s leaving the CAN", nodeIP)
+	for i, node := range s.activeNodes {
+		if nodeIP == node {
+			s.activeNodes = append(s.activeNodes[:i], s.activeNodes[i+1:]...)
+		}
+	}
+	return &pb.BootstrapLeaveResponse{}, nil
+}
+
 // addNode adds a node to the list of active nodes if not already present
 func (s *BootstrapServer) addNode(address string) {
 	s.mu.Lock()

@@ -9,13 +9,22 @@ import (
 
 	"github.com/Arnav-Negi/can/internal/topology"
 	pb "github.com/Arnav-Negi/can/protofiles"
-	//"google.golang.org/grpc/codes"
-	//"google.golang.org/grpc/status"
 )
 
 // LeaveImplementation handles the graceful leaving of a node from the CAN network
 func (node *Node) LeaveImplementation() error {
 	node.logger.Printf("Node %s is leaving the network", node.Info.NodeId)
+
+	// first tell bootstrap server about leaving
+	bootstrapServ, err := node.getGRPCConn(node.bootstrapIP)
+	if err != nil {
+		return err
+	}
+
+	bootstrapClient := pb.NewBootstrapServiceClient(bootstrapServ)
+	bootstrapClient.Leave(context.Background(), &pb.BootstrapLeaveInfo{
+		NodeAddress: node.Info.IpAddress,
+	})
 
 	// Find the smallest neighbor by volume
 	smallestNeighbor, err := node.findSmallestNeighbor()
@@ -36,6 +45,7 @@ func (node *Node) LeaveImplementation() error {
 		LeavingZone:   zoneToProto(node.Info.Zone),
 	})
 	node.grpcServer.GracefulStop()
+
 	if err != nil {
 		return fmt.Errorf("failed to initiate leave process: %v", err)
 	}
