@@ -26,6 +26,11 @@ func (node *Node) LeaveImplementation() error {
 		NodeAddress: node.Info.IpAddress,
 	})
 
+	// If no neighbours, simply return
+	if len(node.RoutingTable.Neighbours) == 0 {
+		return nil
+	}
+
 	// Find the smallest neighbor by volume
 	smallestNeighbor, err := node.findSmallestNeighbor()
 	if err != nil {

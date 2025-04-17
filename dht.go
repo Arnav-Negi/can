@@ -17,6 +17,10 @@ func NewDHT() *DHT {
 	}
 }
 
+func (dht *DHT) Info() (string, []float32, []float32) {
+	return dht.Node.GetInfo()
+}
+
 // StartNode This function starts the gRPC server for the DHT node.
 // It listens for incoming requests and handles them.
 // To be called using goroutines

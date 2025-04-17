@@ -60,6 +60,10 @@ func NewNode() *Node {
 	return retNode
 }
 
+func (node *Node) GetInfo() (string, []float32, []float32) {
+	return node.Info.IpAddress, node.Info.Zone.GetCoordMins(), node.Info.Zone.GetCoordMaxs()
+}
+
 func GetRandomCoordinates(dims uint) []float32 {
 	coords := make([]float32, dims)
 	for i := 0; i < int(dims); i++ {

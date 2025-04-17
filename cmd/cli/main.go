@@ -76,6 +76,11 @@ func main() {
 
 		args := strings.Split(command, " ")
 		switch args[0] {
+		case "info":
+			ip, mins, maxs := dht.Node.GetInfo()
+			fmt.Println("IP:", ip)
+			fmt.Println("Coordinate minimums of Zone:", mins)
+			fmt.Println("Coordinate maximums of Zone:", maxs)
 		case "put":
 			if len(args) != 3 {
 				fmt.Println("Usage: put <key> <value>")
