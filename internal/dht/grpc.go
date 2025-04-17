@@ -30,9 +30,9 @@ func (node *Node) StartGRPCServer(ip string, port int) error {
 	if err != nil {
 		node.logger.Fatalf("failed to listen: %v", err)
 	}
-	s := grpc.NewServer(grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)))
-	pb.RegisterCANNodeServer(s, node)
-	if err := s.Serve(lis); err != nil {
+	node.grpcServer = grpc.NewServer(grpc.UnaryInterceptor(LoggingUnaryServerInterceptor(node.logger)))
+	pb.RegisterCANNodeServer(node.grpcServer, node)
+	if err := node.grpcServer.Serve(lis); err != nil {
 		node.logger.Fatalf("failed to serve: %v", err)
 	}
 	return nil
@@ -116,7 +116,7 @@ func (node *Node) AddNeighbor(ctx context.Context, req *pb.AddNeighborRequest) (
 		IpAddress: req.Neighbor.Address,
 		Zone:      neighborZone,
 	}
-	
+
 	// Iterate through existing neighbors to check if the node is already present
 	// If present already, remove it
 	for i, n := range node.RoutingTable.Neighbours {

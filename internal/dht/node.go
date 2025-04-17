@@ -36,6 +36,8 @@ type Node struct {
 	mu sync.RWMutex
 
 	logger *logrus.Logger
+	// server to stop
+	grpcServer *grpc.Server
 }
 
 // NewNode This function initializes a new Node instance.

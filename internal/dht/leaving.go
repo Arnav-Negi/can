@@ -35,6 +35,7 @@ func (node *Node) LeaveImplementation() error {
 		LeavingNodeId: node.Info.NodeId,
 		LeavingZone:   zoneToProto(node.Info.Zone),
 	})
+	node.grpcServer.GracefulStop()
 	if err != nil {
 		return fmt.Errorf("failed to initiate leave process: %v", err)
 	}
@@ -50,6 +51,7 @@ func (node *Node) LeaveImplementation() error {
 		return err
 	}
 	node.logger.Printf("Node %s has successfully left the network", node.Info.NodeId)
+
 	return nil
 }
 
