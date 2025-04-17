@@ -21,8 +21,8 @@ func NewDHT() *DHT {
 // It listens for incoming requests and handles them.
 // To be called using goroutines
 // port: Port to listen on, 0 for random port
-func (dht *DHT) StartNode(port int) error {
-	return dht.Node.StartGRPCServer(port)
+func (dht *DHT) StartNode(port int, bootstrapAddress string) error {
+	return dht.Node.StartGRPCServer(port, bootstrapAddress)
 }
 
 // Join Bootstrap This starts the DHT, might take some time to set up and join

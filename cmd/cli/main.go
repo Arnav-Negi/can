@@ -22,7 +22,7 @@ func main() {
 
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()
-	go dht.StartNode(*port)
+	go dht.StartNode(*port, fmt.Sprintf("localhost:%d", *bootstrapPort))
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)

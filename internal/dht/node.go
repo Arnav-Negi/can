@@ -2,7 +2,6 @@ package dht
 
 import (
 	"context"
-	"google.golang.org/grpc/credentials/insecure"
 	"math/rand"
 	"os"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	pb "github.com/Arnav-Negi/can/protofiles"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/sirupsen/logrus"
 )
@@ -21,21 +21,21 @@ import (
 type Node struct {
 	pb.UnimplementedCANNodeServer
 
-	conns map[string]*grpc.ClientConn
+	conns 			map[string]*grpc.ClientConn
 
-	IPAddress string
+	IPAddress 		string
 
-	Info          *topology.NodeInfo
-	RoutingTable  *routing.RoutingTable
-	NeighInfo     []topology.NodeInfo
-	lastHeartbeat map[string]time.Time
+	Info          	*topology.NodeInfo
+	RoutingTable  	*routing.RoutingTable
+	NeighInfo     	[]topology.NodeInfo
+	lastHeartbeat 	map[string]time.Time
 
-	KVStore    *store.MemoryStore
-	QueryCache *Cache
+	KVStore    		*store.MemoryStore
+	QueryCache 		*Cache
 
-	mu sync.RWMutex
+	mu 				sync.RWMutex
 
-	logger *logrus.Logger
+	logger 			*logrus.Logger
 }
 
 // NewNode This function initializes a new Node instance.
@@ -66,8 +66,15 @@ func GetRandomCoordinates(dims uint) []float32 {
 }
 
 func (node *Node) getGRPCConn(addr string) (*grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)))
+	// Load TLS credentials
+	tlsCreds, err := LoadTLSCredentials()
+	if err != nil { return nil, err }
+
+	conn, err := grpc.NewClient(
+		addr, 
+		grpc.WithTransportCredentials(tlsCreds),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
+	)
 	return conn, err
 }
 
@@ -283,10 +290,12 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 // JoinImplementation queries bootstrap node and sends a join query
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Query the bootstrap node for info
-	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
-	if err != nil {
-		return err
-	}
+	bootstrapConn, err := grpc.NewClient(
+		bootstrapAddr, 
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
+	)
+	if err != nil { return err }
 	defer bootstrapConn.Close()
 	bootstrapServiceClient := pb.NewBootstrapServiceClient(bootstrapConn)
 
@@ -296,9 +305,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address: node.IPAddress,
 		},
 	)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 
 	// Initialise node info
 	node.mu.Lock()
@@ -315,26 +322,20 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Set up logger file and open file with node.logger
 	logFilePath := "./logs/" + node.Info.NodeId + ".log"
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 	node.logger.SetOutput(file)
 	node.logger.SetFormatter(&logrus.TextFormatter{
 		DisableColors: true,
 	})
 
 	// If no CAN nodes in network, take whole zone
-	if len(joinInfo.ActiveNodes) == 0 {
-		return nil
-	}
+	if len(joinInfo.ActiveNodes) == 0 { return nil }
 
 	// Send Bootstrap request to one of the CAN nodes
 	randIndex := rand.Intn(len(joinInfo.ActiveNodes))
 	randCoords := GetRandomCoordinates(dims) // Joining point P
 	conn, err := node.getClientConn(joinInfo.ActiveNodes[randIndex])
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 
 	canServiceClient := pb.NewCANNodeClient(conn)
 	joinResponse, err := canServiceClient.Join(
@@ -345,9 +346,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address:     node.IPAddress,
 		},
 	)
-	if err != nil {
-		return err
-	}
+	if err != nil { return err }
 
 	// use join response to update node info
 	node.mu.Lock()

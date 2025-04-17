@@ -30,3 +30,9 @@ go.work.sum
 
 # logs
 cmd/cli/logs/*
+
+# certs
+cmd/bootstrapper/certs/*
+cmd/cli/certs/node*
+cmd/cli/certs/root*
+cmd/cli/cert/*
