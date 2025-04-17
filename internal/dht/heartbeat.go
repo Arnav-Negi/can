@@ -34,7 +34,7 @@ func (node *Node) HeartbeatRoutine() {
 				}
 				client := pb.NewCANNodeClient(conn)
 
-				ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+				ctx, cancel := context.WithTimeout(context.Background(), 40*time.Second)
 				defer cancel()
 
 				_, err = client.Heartbeat(ctx, &pb.HeartbeatRequest{
@@ -74,7 +74,7 @@ func (node *Node) CleanupStaleConnections() {
 
 	// Check for stale connections and remove them
 	for address, lastHeartbeat := range node.lastHeartbeat {
-		if time.Since(lastHeartbeat) > 10*time.Second { // TODO : Make this configurable
+		if time.Since(lastHeartbeat) > 100*time.Second { // TODO : Make this configurable
 			// Find the nodeId for this address
 			var nodeId string
 			for _, neighbor := range node.RoutingTable.Neighbours {
