@@ -2,7 +2,7 @@ package dht
 
 import (
 	"context"
-	"google.golang.org/grpc/credentials/insecure"
+	"log"
 	"math/rand"
 	"os"
 	"sync"
@@ -14,6 +14,7 @@ import (
 	pb "github.com/Arnav-Negi/can/protofiles"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	"github.com/sirupsen/logrus"
 )
@@ -36,6 +37,7 @@ type Node struct {
 	mu sync.RWMutex
 
 	logger *logrus.Logger
+
 	// server to stop
 	grpcServer  *grpc.Server
 	bootstrapIP string
@@ -43,7 +45,7 @@ type Node struct {
 
 // NewNode This function initializes a new Node instance.
 func NewNode() *Node {
-	ipAddress := "localhost:0"
+	ipAddress := "127.0.0.1:0"
 
 	retNode := &Node{
 		conns:         make(map[string]*grpc.ClientConn),
@@ -73,8 +75,17 @@ func GetRandomCoordinates(dims uint) []float32 {
 }
 
 func (node *Node) getGRPCConn(addr string) (*grpc.ClientConn, error) {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()),
-		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)))
+	// Load TLS credentials
+	tlsCreds, err := LoadTLSCredentials(node.IPAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := grpc.NewClient(
+		addr,
+		grpc.WithTransportCredentials(tlsCreds),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
+	)
 	return conn, err
 }
 
@@ -296,10 +307,16 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	// Query the bootstrap node for info
 	node.bootstrapIP = bootstrapAddr
-	bootstrapConn, err := node.getGRPCConn(bootstrapAddr)
+
+	bootstrapConn, err := grpc.NewClient(
+		bootstrapAddr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)),
+	)
 	if err != nil {
 		return err
 	}
+
 	defer bootstrapConn.Close()
 	bootstrapServiceClient := pb.NewBootstrapServiceClient(bootstrapConn)
 
@@ -326,7 +343,12 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	node.mu.Unlock()
 
 	// Set up logger file and open file with node.logger
-	logFilePath := "./logs/" + node.Info.NodeId + ".log"
+	logDir := "./logs"
+	if err := os.MkdirAll(logDir, 0755); err != nil {
+		return err
+	}
+
+	logFilePath := logDir + "/" + node.Info.NodeId + ".log"
 	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return err
@@ -352,6 +374,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	canServiceClient := pb.NewCANNodeClient(conn)
+	log.Printf("HALLO0")
 	joinResponse, err := canServiceClient.Join(
 		context.Background(),
 		&pb.JoinRequest{
@@ -360,9 +383,12 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 			Address:     node.IPAddress,
 		},
 	)
+	log.Printf("HALLO1")
 	if err != nil {
 		return err
 	}
+
+	log.Printf("HALLO2")
 
 	// use join response to update node info
 	node.mu.Lock()

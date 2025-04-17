@@ -2,13 +2,21 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/x509"
+	"encoding/pem"
 	"flag"
 	"fmt"
+	"log"
+	"math/big"
+	"net"
+	"os"
+	"sync"
+	"time"
+
 	pb "github.com/Arnav-Negi/can/protofiles"
 	"google.golang.org/grpc"
-	"log"
-	"net"
-	"sync"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -95,6 +103,98 @@ func (s *BootstrapServer) Leave(ctx context.Context, req *pb.BootstrapLeaveInfo)
 		}
 	}
 	return &pb.BootstrapLeaveResponse{}, nil
+}
+
+// GetActiveNodes implements the GetActiveNodes RPC method
+func (s *BootstrapServer) GetRootCApem(ctx context.Context, req *emptypb.Empty) (*pb.RootCApemResponse, error) {
+	log.Printf("Received request for root CA PEM")
+
+	rootCAPem, err := os.ReadFile("certs/ca-cert.pem")
+	if err != nil {
+		return nil, err
+	}
+	return &pb.RootCApemResponse{
+		RootCaPem: rootCAPem,
+	}, nil
+}
+
+// SignCSR implements the SignCSR RPC method
+func (s *BootstrapServer) SignCSR(ctx context.Context, req *pb.SignCSRRequest) (*pb.SignCSRResponse, error) {
+	// Load CA key and cert
+	caCertPEM, err := os.ReadFile("certs/ca-cert.pem")
+	if err != nil {
+		return nil, err
+	}
+	caKeyPEM, err := os.ReadFile("certs/ca-key.pem")
+	if err != nil {
+		return nil, err
+	}
+
+	caCertBlock, _ := pem.Decode(caCertPEM)
+	caKeyBlock, _ := pem.Decode(caKeyPEM)
+
+	caCert, err := x509.ParseCertificate(caCertBlock.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	// Try parsing as PKCS1, fallback to PKCS8
+	var caKey any
+	caKey, err = x509.ParsePKCS1PrivateKey(caKeyBlock.Bytes)
+	if err != nil {
+		caKey, err = x509.ParsePKCS8PrivateKey(caKeyBlock.Bytes)
+		if err != nil {
+			return nil, fmt.Errorf("parsing CA key failed: %v", err)
+		}
+	}
+
+	// Decode the CSR
+	csrBlock, _ := pem.Decode(req.CsrPem)
+	if csrBlock == nil {
+		return nil, fmt.Errorf("failed to decode CSR PEM")
+	}
+	csr, err := x509.ParseCertificateRequest(csrBlock.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("invalid CSR: %w", err)
+	}
+	if err := csr.CheckSignature(); err != nil {
+		return nil, fmt.Errorf("CSR signature invalid: %w", err)
+	}
+
+	// Parse IP SAN if provided
+	// Replace localhost with 127.0.0.1 if present
+	var ipSANs []net.IP
+	ipStr := req.IpSan
+	if ipStr == "localhost" {
+		log.Printf("IP SAN: %s", ipStr)
+		ipStr = "127.0.0.1"
+	}
+	if ipStr != "" {
+		ip := net.ParseIP(ipStr)
+		if ip == nil {
+			return nil, fmt.Errorf("invalid IP SAN: %q", ipStr)
+		}
+		ipSANs = append(ipSANs, ip)
+	}
+
+	// Sign the CSR
+	certTemplate := &x509.Certificate{
+		SerialNumber: big.NewInt(time.Now().UnixNano()),
+		Subject:      csr.Subject,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().Add(365 * 24 * time.Hour),
+		KeyUsage:     x509.KeyUsageDigitalSignature | x509.KeyUsageKeyEncipherment,
+		ExtKeyUsage:  []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		IPAddresses:  ipSANs,
+	}
+
+	certBytes, err := x509.CreateCertificate(rand.Reader, certTemplate, caCert, csr.PublicKey, caKey)
+	if err != nil {
+		return nil, fmt.Errorf("signing failed: %w", err)
+	}
+
+	certPEM := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certBytes})
+	return &pb.SignCSRResponse{SignedCertPem: certPEM}, nil
 }
 
 // addNode adds a node to the list of active nodes if not already present

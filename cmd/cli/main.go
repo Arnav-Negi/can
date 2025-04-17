@@ -13,10 +13,10 @@ import (
 )
 
 var (
-	selfIP = flag.String("ip", "localhost", "Node's IP address")
+	selfIP = flag.String("ip", "127.0.0.1", "Node's IP address")
 	port   = flag.Int("port", 0, "Node's port")
 
-	bootstrapIP   = flag.String("bstrap-ip", "localhost", "Bootstrap IP address")
+	bootstrapIP   = flag.String("bstrap-ip", "127.0.0.1", "Bootstrap IP address")
 	bootstrapPort = flag.Int("bstrap-port", 5000, "Bootstrap port")
 )
 
@@ -31,7 +31,7 @@ func main() {
 
 	// DHT must be started in a goroutine before making any calls to it
 	dht := can.NewDHT()
-	go dht.StartNode(*selfIP, *port)
+	go dht.StartNode(*selfIP, *port, fmt.Sprintf("%s:%d", *bootstrapIP, *bootstrapPort))
 
 	// TODO: Replace with synchronization structure like ctx
 	time.Sleep(1 * time.Second)
@@ -105,6 +105,18 @@ func main() {
 			} else {
 				fmt.Printf("Value retrieved: %s\n", string(value))
 			}
+		case "delete":
+			if len(args) != 2 {
+				fmt.Println("Usage: delete <key>")
+				continue
+			}
+			key := args[1]
+			err := dht.Delete(key)
+			if err != nil {
+				fmt.Println("Error deleting value:", err)
+			} else {
+				fmt.Println("Delete successful.")
+			}
 		case "exit":
 			fmt.Println("Exiting...")
 			err := dht.Leave()
@@ -119,9 +131,12 @@ func main() {
 			fmt.Println("  put <key> <value> - Store a value in the DHT")
 			fmt.Println("  get <key>         - Retrieve a value from the DHT")
 			fmt.Println("  exit              - Exit the CLI and DHT")
+			fmt.Println("  delete <key>      - Delete a value from the DHT")
+			fmt.Println("  exit              - Exit the CLI")
+			fmt.Println("  info              - Print node's information")
 			fmt.Println("  help              - Show this help message")
 		default:
-			fmt.Println("Unknown command:", command)
+			fmt.Println("Unknown command: ", command)
 			fmt.Println("Type 'help' for a list of available commands.")
 		}
 	}

@@ -22,6 +22,7 @@ const (
 	CANNode_Join_FullMethodName                     = "/can.CANNode/Join"
 	CANNode_Get_FullMethodName                      = "/can.CANNode/Get"
 	CANNode_Put_FullMethodName                      = "/can.CANNode/Put"
+	CANNode_Delete_FullMethodName                   = "/can.CANNode/Delete"
 	CANNode_AddNeighbor_FullMethodName              = "/can.CANNode/AddNeighbor"
 	CANNode_Heartbeat_FullMethodName                = "/can.CANNode/Heartbeat"
 	CANNode_SendNeighbourInfo_FullMethodName        = "/can.CANNode/SendNeighbourInfo"
@@ -46,6 +47,8 @@ type CANNodeClient interface {
 	Get(ctx context.Context, in *GetRequest, opts ...grpc.CallOption) (*GetResponse, error)
 	// Put a key-value pair in the CAN network
 	Put(ctx context.Context, in *PutRequest, opts ...grpc.CallOption) (*PutResponse, error)
+	// Delete a key-value pair in the CAN network
+	Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error)
 	// Add a neighbor to the routing table
 	AddNeighbor(ctx context.Context, in *AddNeighborRequest, opts ...grpc.CallOption) (*AddNeighborResponse, error)
 	// Send Heartbeat
@@ -96,6 +99,16 @@ func (c *cANNodeClient) Put(ctx context.Context, in *PutRequest, opts ...grpc.Ca
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(PutResponse)
 	err := c.cc.Invoke(ctx, CANNode_Put_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *cANNodeClient) Delete(ctx context.Context, in *DeleteRequest, opts ...grpc.CallOption) (*DeleteResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(DeleteResponse)
+	err := c.cc.Invoke(ctx, CANNode_Delete_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -214,6 +227,8 @@ type CANNodeServer interface {
 	Get(context.Context, *GetRequest) (*GetResponse, error)
 	// Put a key-value pair in the CAN network
 	Put(context.Context, *PutRequest) (*PutResponse, error)
+	// Delete a key-value pair in the CAN network
+	Delete(context.Context, *DeleteRequest) (*DeleteResponse, error)
 	// Add a neighbor to the routing table
 	AddNeighbor(context.Context, *AddNeighborRequest) (*AddNeighborResponse, error)
 	// Send Heartbeat
@@ -248,6 +263,9 @@ func (UnimplementedCANNodeServer) Get(context.Context, *GetRequest) (*GetRespons
 }
 func (UnimplementedCANNodeServer) Put(context.Context, *PutRequest) (*PutResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Put not implemented")
+}
+func (UnimplementedCANNodeServer) Delete(context.Context, *DeleteRequest) (*DeleteResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Delete not implemented")
 }
 func (UnimplementedCANNodeServer) AddNeighbor(context.Context, *AddNeighborRequest) (*AddNeighborResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddNeighbor not implemented")
@@ -350,6 +368,24 @@ func _CANNode_Put_Handler(srv interface{}, ctx context.Context, dec func(interfa
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(CANNodeServer).Put(ctx, req.(*PutRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _CANNode_Delete_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeleteRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CANNodeServer).Delete(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CANNode_Delete_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CANNodeServer).Delete(ctx, req.(*DeleteRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -552,6 +588,10 @@ var CANNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Put",
 			Handler:    _CANNode_Put_Handler,
+		},
+		{
+			MethodName: "Delete",
+			Handler:    _CANNode_Delete_Handler,
 		},
 		{
 			MethodName: "AddNeighbor",

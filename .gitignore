@@ -27,3 +27,15 @@ go.work.sum
 # ide
 .idea
 .vscode
+
+# logs
+cmd/cli/logs
+testing/scale/logs
+testing/latency/logs
+
+# certs
+cmd/bootstrapper/certs/*.pem
+cmd/bootstrapper/certs/*.srl
+cmd/cli/certs
+testing/latency/certs
+testing/scale/certs

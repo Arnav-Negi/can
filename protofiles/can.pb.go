@@ -510,6 +510,103 @@ func (x *PutResponse) GetSuccess() bool {
 	return false
 }
 
+// Request for deleting a key-value pair
+type DeleteRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Key           string                 `protobuf:"bytes,1,opt,name=key,proto3" json:"key,omitempty"`
+	HashToUse     int32                  `protobuf:"varint,2,opt,name=hash_to_use,json=hashToUse,proto3" json:"hash_to_use,omitempty"` // Hash function to use for the key
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteRequest) Reset() {
+	*x = DeleteRequest{}
+	mi := &file_can_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteRequest) ProtoMessage() {}
+
+func (x *DeleteRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteRequest.ProtoReflect.Descriptor instead.
+func (*DeleteRequest) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *DeleteRequest) GetKey() string {
+	if x != nil {
+		return x.Key
+	}
+	return ""
+}
+
+func (x *DeleteRequest) GetHashToUse() int32 {
+	if x != nil {
+		return x.HashToUse
+	}
+	return 0
+}
+
+type DeleteResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"` // Whether the key-value pair was deleted successfully
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DeleteResponse) Reset() {
+	*x = DeleteResponse{}
+	mi := &file_can_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DeleteResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DeleteResponse) ProtoMessage() {}
+
+func (x *DeleteResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_can_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DeleteResponse.ProtoReflect.Descriptor instead.
+func (*DeleteResponse) Descriptor() ([]byte, []int) {
+	return file_can_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *DeleteResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
 // Request for adding a neighbor
 type AddNeighborRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -520,7 +617,7 @@ type AddNeighborRequest struct {
 
 func (x *AddNeighborRequest) Reset() {
 	*x = AddNeighborRequest{}
-	mi := &file_can_proto_msgTypes[9]
+	mi := &file_can_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -532,7 +629,7 @@ func (x *AddNeighborRequest) String() string {
 func (*AddNeighborRequest) ProtoMessage() {}
 
 func (x *AddNeighborRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[9]
+	mi := &file_can_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -545,7 +642,7 @@ func (x *AddNeighborRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNeighborRequest.ProtoReflect.Descriptor instead.
 func (*AddNeighborRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{9}
+	return file_can_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *AddNeighborRequest) GetNeighbor() *Node {
@@ -564,7 +661,7 @@ type AddNeighborResponse struct {
 
 func (x *AddNeighborResponse) Reset() {
 	*x = AddNeighborResponse{}
-	mi := &file_can_proto_msgTypes[10]
+	mi := &file_can_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -576,7 +673,7 @@ func (x *AddNeighborResponse) String() string {
 func (*AddNeighborResponse) ProtoMessage() {}
 
 func (x *AddNeighborResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[10]
+	mi := &file_can_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -589,7 +686,7 @@ func (x *AddNeighborResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddNeighborResponse.ProtoReflect.Descriptor instead.
 func (*AddNeighborResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{10}
+	return file_can_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *AddNeighborResponse) GetSuccess() bool {
@@ -609,7 +706,7 @@ type HeartbeatRequest struct {
 
 func (x *HeartbeatRequest) Reset() {
 	*x = HeartbeatRequest{}
-	mi := &file_can_proto_msgTypes[11]
+	mi := &file_can_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -621,7 +718,7 @@ func (x *HeartbeatRequest) String() string {
 func (*HeartbeatRequest) ProtoMessage() {}
 
 func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[11]
+	mi := &file_can_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -634,7 +731,7 @@ func (x *HeartbeatRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatRequest.ProtoReflect.Descriptor instead.
 func (*HeartbeatRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{11}
+	return file_can_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *HeartbeatRequest) GetAddress() string {
@@ -653,7 +750,7 @@ type HeartbeatResponse struct {
 
 func (x *HeartbeatResponse) Reset() {
 	*x = HeartbeatResponse{}
-	mi := &file_can_proto_msgTypes[12]
+	mi := &file_can_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -665,7 +762,7 @@ func (x *HeartbeatResponse) String() string {
 func (*HeartbeatResponse) ProtoMessage() {}
 
 func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[12]
+	mi := &file_can_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -678,7 +775,7 @@ func (x *HeartbeatResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use HeartbeatResponse.ProtoReflect.Descriptor instead.
 func (*HeartbeatResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{12}
+	return file_can_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *HeartbeatResponse) GetSuccess() bool {
@@ -701,7 +798,7 @@ type NeighbourInfoRequest struct {
 
 func (x *NeighbourInfoRequest) Reset() {
 	*x = NeighbourInfoRequest{}
-	mi := &file_can_proto_msgTypes[13]
+	mi := &file_can_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -713,7 +810,7 @@ func (x *NeighbourInfoRequest) String() string {
 func (*NeighbourInfoRequest) ProtoMessage() {}
 
 func (x *NeighbourInfoRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[13]
+	mi := &file_can_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -726,7 +823,7 @@ func (x *NeighbourInfoRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NeighbourInfoRequest.ProtoReflect.Descriptor instead.
 func (*NeighbourInfoRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{13}
+	return file_can_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *NeighbourInfoRequest) GetNodeId() string {
@@ -766,7 +863,7 @@ type NeighbourInfoResponse struct {
 
 func (x *NeighbourInfoResponse) Reset() {
 	*x = NeighbourInfoResponse{}
-	mi := &file_can_proto_msgTypes[14]
+	mi := &file_can_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -778,7 +875,7 @@ func (x *NeighbourInfoResponse) String() string {
 func (*NeighbourInfoResponse) ProtoMessage() {}
 
 func (x *NeighbourInfoResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[14]
+	mi := &file_can_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -791,7 +888,7 @@ func (x *NeighbourInfoResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use NeighbourInfoResponse.ProtoReflect.Descriptor instead.
 func (*NeighbourInfoResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{14}
+	return file_can_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *NeighbourInfoResponse) GetSuccess() bool {
@@ -812,7 +909,7 @@ type LeaveRequest struct {
 
 func (x *LeaveRequest) Reset() {
 	*x = LeaveRequest{}
-	mi := &file_can_proto_msgTypes[15]
+	mi := &file_can_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -824,7 +921,7 @@ func (x *LeaveRequest) String() string {
 func (*LeaveRequest) ProtoMessage() {}
 
 func (x *LeaveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[15]
+	mi := &file_can_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -837,7 +934,7 @@ func (x *LeaveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveRequest.ProtoReflect.Descriptor instead.
 func (*LeaveRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{15}
+	return file_can_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *LeaveRequest) GetLeavingNodeId() string {
@@ -864,7 +961,7 @@ type LeaveResponse struct {
 
 func (x *LeaveResponse) Reset() {
 	*x = LeaveResponse{}
-	mi := &file_can_proto_msgTypes[16]
+	mi := &file_can_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -876,7 +973,7 @@ func (x *LeaveResponse) String() string {
 func (*LeaveResponse) ProtoMessage() {}
 
 func (x *LeaveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[16]
+	mi := &file_can_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -889,7 +986,7 @@ func (x *LeaveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use LeaveResponse.ProtoReflect.Descriptor instead.
 func (*LeaveResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{16}
+	return file_can_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *LeaveResponse) GetSuccess() bool {
@@ -917,7 +1014,7 @@ type DFSRequest struct {
 
 func (x *DFSRequest) Reset() {
 	*x = DFSRequest{}
-	mi := &file_can_proto_msgTypes[17]
+	mi := &file_can_proto_msgTypes[19]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -929,7 +1026,7 @@ func (x *DFSRequest) String() string {
 func (*DFSRequest) ProtoMessage() {}
 
 func (x *DFSRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[17]
+	mi := &file_can_proto_msgTypes[19]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -942,7 +1039,7 @@ func (x *DFSRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DFSRequest.ProtoReflect.Descriptor instead.
 func (*DFSRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{17}
+	return file_can_proto_rawDescGZIP(), []int{19}
 }
 
 func (x *DFSRequest) GetLeavingNodeId() string {
@@ -978,7 +1075,7 @@ type DFSResponse struct {
 
 func (x *DFSResponse) Reset() {
 	*x = DFSResponse{}
-	mi := &file_can_proto_msgTypes[18]
+	mi := &file_can_proto_msgTypes[20]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -990,7 +1087,7 @@ func (x *DFSResponse) String() string {
 func (*DFSResponse) ProtoMessage() {}
 
 func (x *DFSResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[18]
+	mi := &file_can_proto_msgTypes[20]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1003,7 +1100,7 @@ func (x *DFSResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DFSResponse.ProtoReflect.Descriptor instead.
 func (*DFSResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{18}
+	return file_can_proto_rawDescGZIP(), []int{20}
 }
 
 func (x *DFSResponse) GetFoundSibling() bool {
@@ -1046,7 +1143,7 @@ type TakeoverRequest struct {
 
 func (x *TakeoverRequest) Reset() {
 	*x = TakeoverRequest{}
-	mi := &file_can_proto_msgTypes[19]
+	mi := &file_can_proto_msgTypes[21]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1058,7 +1155,7 @@ func (x *TakeoverRequest) String() string {
 func (*TakeoverRequest) ProtoMessage() {}
 
 func (x *TakeoverRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[19]
+	mi := &file_can_proto_msgTypes[21]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1071,7 +1168,7 @@ func (x *TakeoverRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TakeoverRequest.ProtoReflect.Descriptor instead.
 func (*TakeoverRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{19}
+	return file_can_proto_rawDescGZIP(), []int{21}
 }
 
 func (x *TakeoverRequest) GetLeavingNodeId() string {
@@ -1112,7 +1209,7 @@ type TakeoverResponse struct {
 
 func (x *TakeoverResponse) Reset() {
 	*x = TakeoverResponse{}
-	mi := &file_can_proto_msgTypes[20]
+	mi := &file_can_proto_msgTypes[22]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1124,7 +1221,7 @@ func (x *TakeoverResponse) String() string {
 func (*TakeoverResponse) ProtoMessage() {}
 
 func (x *TakeoverResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[20]
+	mi := &file_can_proto_msgTypes[22]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1137,7 +1234,7 @@ func (x *TakeoverResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TakeoverResponse.ProtoReflect.Descriptor instead.
 func (*TakeoverResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{20}
+	return file_can_proto_rawDescGZIP(), []int{22}
 }
 
 func (x *TakeoverResponse) GetSuccess() bool {
@@ -1163,7 +1260,7 @@ type TransferDataRequest struct {
 
 func (x *TransferDataRequest) Reset() {
 	*x = TransferDataRequest{}
-	mi := &file_can_proto_msgTypes[21]
+	mi := &file_can_proto_msgTypes[23]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1175,7 +1272,7 @@ func (x *TransferDataRequest) String() string {
 func (*TransferDataRequest) ProtoMessage() {}
 
 func (x *TransferDataRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[21]
+	mi := &file_can_proto_msgTypes[23]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1188,7 +1285,7 @@ func (x *TransferDataRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferDataRequest.ProtoReflect.Descriptor instead.
 func (*TransferDataRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{21}
+	return file_can_proto_rawDescGZIP(), []int{23}
 }
 
 func (x *TransferDataRequest) GetRequestingNodeId() string {
@@ -1207,7 +1304,7 @@ type TransferDataResponse struct {
 
 func (x *TransferDataResponse) Reset() {
 	*x = TransferDataResponse{}
-	mi := &file_can_proto_msgTypes[22]
+	mi := &file_can_proto_msgTypes[24]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1219,7 +1316,7 @@ func (x *TransferDataResponse) String() string {
 func (*TransferDataResponse) ProtoMessage() {}
 
 func (x *TransferDataResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[22]
+	mi := &file_can_proto_msgTypes[24]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1232,7 +1329,7 @@ func (x *TransferDataResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransferDataResponse.ProtoReflect.Descriptor instead.
 func (*TransferDataResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{22}
+	return file_can_proto_rawDescGZIP(), []int{24}
 }
 
 func (x *TransferDataResponse) GetData() []*KeyValuePair {
@@ -1250,7 +1347,7 @@ type GetNeighborsRequest struct {
 
 func (x *GetNeighborsRequest) Reset() {
 	*x = GetNeighborsRequest{}
-	mi := &file_can_proto_msgTypes[23]
+	mi := &file_can_proto_msgTypes[25]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1262,7 +1359,7 @@ func (x *GetNeighborsRequest) String() string {
 func (*GetNeighborsRequest) ProtoMessage() {}
 
 func (x *GetNeighborsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[23]
+	mi := &file_can_proto_msgTypes[25]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1275,7 +1372,7 @@ func (x *GetNeighborsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNeighborsRequest.ProtoReflect.Descriptor instead.
 func (*GetNeighborsRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{23}
+	return file_can_proto_rawDescGZIP(), []int{25}
 }
 
 type GetNeighborsResponse struct {
@@ -1287,7 +1384,7 @@ type GetNeighborsResponse struct {
 
 func (x *GetNeighborsResponse) Reset() {
 	*x = GetNeighborsResponse{}
-	mi := &file_can_proto_msgTypes[24]
+	mi := &file_can_proto_msgTypes[26]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1299,7 +1396,7 @@ func (x *GetNeighborsResponse) String() string {
 func (*GetNeighborsResponse) ProtoMessage() {}
 
 func (x *GetNeighborsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[24]
+	mi := &file_can_proto_msgTypes[26]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1312,7 +1409,7 @@ func (x *GetNeighborsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetNeighborsResponse.ProtoReflect.Descriptor instead.
 func (*GetNeighborsResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{24}
+	return file_can_proto_rawDescGZIP(), []int{26}
 }
 
 func (x *GetNeighborsResponse) GetNeighbors() []*Node {
@@ -1334,7 +1431,7 @@ type ZoneMergeNotification struct {
 
 func (x *ZoneMergeNotification) Reset() {
 	*x = ZoneMergeNotification{}
-	mi := &file_can_proto_msgTypes[25]
+	mi := &file_can_proto_msgTypes[27]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1346,7 +1443,7 @@ func (x *ZoneMergeNotification) String() string {
 func (*ZoneMergeNotification) ProtoMessage() {}
 
 func (x *ZoneMergeNotification) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[25]
+	mi := &file_can_proto_msgTypes[27]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1359,7 +1456,7 @@ func (x *ZoneMergeNotification) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ZoneMergeNotification.ProtoReflect.Descriptor instead.
 func (*ZoneMergeNotification) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{25}
+	return file_can_proto_rawDescGZIP(), []int{27}
 }
 
 func (x *ZoneMergeNotification) GetTakeoverNodeId() string {
@@ -1399,7 +1496,7 @@ type ZoneMergeResponse struct {
 
 func (x *ZoneMergeResponse) Reset() {
 	*x = ZoneMergeResponse{}
-	mi := &file_can_proto_msgTypes[26]
+	mi := &file_can_proto_msgTypes[28]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1411,7 +1508,7 @@ func (x *ZoneMergeResponse) String() string {
 func (*ZoneMergeResponse) ProtoMessage() {}
 
 func (x *ZoneMergeResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[26]
+	mi := &file_can_proto_msgTypes[28]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1424,7 +1521,7 @@ func (x *ZoneMergeResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ZoneMergeResponse.ProtoReflect.Descriptor instead.
 func (*ZoneMergeResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{26}
+	return file_can_proto_rawDescGZIP(), []int{28}
 }
 
 func (x *ZoneMergeResponse) GetSuccess() bool {
@@ -1445,7 +1542,7 @@ type CoordinatorElectionRequest struct {
 
 func (x *CoordinatorElectionRequest) Reset() {
 	*x = CoordinatorElectionRequest{}
-	mi := &file_can_proto_msgTypes[27]
+	mi := &file_can_proto_msgTypes[29]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1457,7 +1554,7 @@ func (x *CoordinatorElectionRequest) String() string {
 func (*CoordinatorElectionRequest) ProtoMessage() {}
 
 func (x *CoordinatorElectionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[27]
+	mi := &file_can_proto_msgTypes[29]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1470,7 +1567,7 @@ func (x *CoordinatorElectionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoordinatorElectionRequest.ProtoReflect.Descriptor instead.
 func (*CoordinatorElectionRequest) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{27}
+	return file_can_proto_rawDescGZIP(), []int{29}
 }
 
 func (x *CoordinatorElectionRequest) GetCandidateNodeId() string {
@@ -1503,7 +1600,7 @@ type CoordinatorElectionResponse struct {
 
 func (x *CoordinatorElectionResponse) Reset() {
 	*x = CoordinatorElectionResponse{}
-	mi := &file_can_proto_msgTypes[28]
+	mi := &file_can_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1515,7 +1612,7 @@ func (x *CoordinatorElectionResponse) String() string {
 func (*CoordinatorElectionResponse) ProtoMessage() {}
 
 func (x *CoordinatorElectionResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_can_proto_msgTypes[28]
+	mi := &file_can_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1528,7 +1625,7 @@ func (x *CoordinatorElectionResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CoordinatorElectionResponse.ProtoReflect.Descriptor instead.
 func (*CoordinatorElectionResponse) Descriptor() ([]byte, []int) {
-	return file_can_proto_rawDescGZIP(), []int{28}
+	return file_can_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *CoordinatorElectionResponse) GetShouldBeCoordinator() bool {
@@ -1573,6 +1670,11 @@ const file_can_proto_rawDesc = "" +
 	"\x05value\x18\x02 \x01(\fR\x05value\x12\x1e\n" +
 	"\vhash_to_use\x18\x03 \x01(\x05R\thashToUse\"'\n" +
 	"\vPutResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"A\n" +
+	"\rDeleteRequest\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x1e\n" +
+	"\vhash_to_use\x18\x02 \x01(\x05R\thashToUse\"*\n" +
+	"\x0eDeleteResponse\x12\x18\n" +
 	"\asuccess\x18\x01 \x01(\bR\asuccess\";\n" +
 	"\x12AddNeighborRequest\x12%\n" +
 	"\bneighbor\x18\x01 \x01(\v2\t.can.NodeR\bneighbor\"/\n" +
@@ -1636,11 +1738,12 @@ const file_can_proto_rawDesc = "" +
 	"\x10candidate_volume\x18\x02 \x01(\x02R\x0fcandidateVolume\x12&\n" +
 	"\x0fcrashed_node_id\x18\x03 \x01(\tR\rcrashedNodeId\"Q\n" +
 	"\x1bCoordinatorElectionResponse\x122\n" +
-	"\x15should_be_coordinator\x18\x01 \x01(\bR\x13shouldBeCoordinator2\xaa\x06\n" +
+	"\x15should_be_coordinator\x18\x01 \x01(\bR\x13shouldBeCoordinator2\xdd\x06\n" +
 	"\aCANNode\x12+\n" +
 	"\x04Join\x12\x10.can.JoinRequest\x1a\x11.can.JoinResponse\x12(\n" +
 	"\x03Get\x12\x0f.can.GetRequest\x1a\x10.can.GetResponse\x12(\n" +
-	"\x03Put\x12\x0f.can.PutRequest\x1a\x10.can.PutResponse\x12@\n" +
+	"\x03Put\x12\x0f.can.PutRequest\x1a\x10.can.PutResponse\x121\n" +
+	"\x06Delete\x12\x12.can.DeleteRequest\x1a\x13.can.DeleteResponse\x12@\n" +
 	"\vAddNeighbor\x12\x17.can.AddNeighborRequest\x1a\x18.can.AddNeighborResponse\x12:\n" +
 	"\tHeartbeat\x12\x15.can.HeartbeatRequest\x1a\x16.can.HeartbeatResponse\x12J\n" +
 	"\x11SendNeighbourInfo\x12\x19.can.NeighbourInfoRequest\x1a\x1a.can.NeighbourInfoResponse\x126\n" +
@@ -1665,7 +1768,7 @@ func file_can_proto_rawDescGZIP() []byte {
 	return file_can_proto_rawDescData
 }
 
-var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 29)
+var file_can_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
 var file_can_proto_goTypes = []any{
 	(*Zone)(nil),                        // 0: can.Zone
 	(*Node)(nil),                        // 1: can.Node
@@ -1676,26 +1779,28 @@ var file_can_proto_goTypes = []any{
 	(*GetResponse)(nil),                 // 6: can.GetResponse
 	(*PutRequest)(nil),                  // 7: can.PutRequest
 	(*PutResponse)(nil),                 // 8: can.PutResponse
-	(*AddNeighborRequest)(nil),          // 9: can.AddNeighborRequest
-	(*AddNeighborResponse)(nil),         // 10: can.AddNeighborResponse
-	(*HeartbeatRequest)(nil),            // 11: can.HeartbeatRequest
-	(*HeartbeatResponse)(nil),           // 12: can.HeartbeatResponse
-	(*NeighbourInfoRequest)(nil),        // 13: can.NeighbourInfoRequest
-	(*NeighbourInfoResponse)(nil),       // 14: can.NeighbourInfoResponse
-	(*LeaveRequest)(nil),                // 15: can.LeaveRequest
-	(*LeaveResponse)(nil),               // 16: can.LeaveResponse
-	(*DFSRequest)(nil),                  // 17: can.DFSRequest
-	(*DFSResponse)(nil),                 // 18: can.DFSResponse
-	(*TakeoverRequest)(nil),             // 19: can.TakeoverRequest
-	(*TakeoverResponse)(nil),            // 20: can.TakeoverResponse
-	(*TransferDataRequest)(nil),         // 21: can.TransferDataRequest
-	(*TransferDataResponse)(nil),        // 22: can.TransferDataResponse
-	(*GetNeighborsRequest)(nil),         // 23: can.GetNeighborsRequest
-	(*GetNeighborsResponse)(nil),        // 24: can.GetNeighborsResponse
-	(*ZoneMergeNotification)(nil),       // 25: can.ZoneMergeNotification
-	(*ZoneMergeResponse)(nil),           // 26: can.ZoneMergeResponse
-	(*CoordinatorElectionRequest)(nil),  // 27: can.CoordinatorElectionRequest
-	(*CoordinatorElectionResponse)(nil), // 28: can.CoordinatorElectionResponse
+	(*DeleteRequest)(nil),               // 9: can.DeleteRequest
+	(*DeleteResponse)(nil),              // 10: can.DeleteResponse
+	(*AddNeighborRequest)(nil),          // 11: can.AddNeighborRequest
+	(*AddNeighborResponse)(nil),         // 12: can.AddNeighborResponse
+	(*HeartbeatRequest)(nil),            // 13: can.HeartbeatRequest
+	(*HeartbeatResponse)(nil),           // 14: can.HeartbeatResponse
+	(*NeighbourInfoRequest)(nil),        // 15: can.NeighbourInfoRequest
+	(*NeighbourInfoResponse)(nil),       // 16: can.NeighbourInfoResponse
+	(*LeaveRequest)(nil),                // 17: can.LeaveRequest
+	(*LeaveResponse)(nil),               // 18: can.LeaveResponse
+	(*DFSRequest)(nil),                  // 19: can.DFSRequest
+	(*DFSResponse)(nil),                 // 20: can.DFSResponse
+	(*TakeoverRequest)(nil),             // 21: can.TakeoverRequest
+	(*TakeoverResponse)(nil),            // 22: can.TakeoverResponse
+	(*TransferDataRequest)(nil),         // 23: can.TransferDataRequest
+	(*TransferDataResponse)(nil),        // 24: can.TransferDataResponse
+	(*GetNeighborsRequest)(nil),         // 25: can.GetNeighborsRequest
+	(*GetNeighborsResponse)(nil),        // 26: can.GetNeighborsResponse
+	(*ZoneMergeNotification)(nil),       // 27: can.ZoneMergeNotification
+	(*ZoneMergeResponse)(nil),           // 28: can.ZoneMergeResponse
+	(*CoordinatorElectionRequest)(nil),  // 29: can.CoordinatorElectionRequest
+	(*CoordinatorElectionResponse)(nil), // 30: can.CoordinatorElectionResponse
 }
 var file_can_proto_depIdxs = []int32{
 	0,  // 0: can.Node.zone:type_name -> can.Zone
@@ -1717,31 +1822,33 @@ var file_can_proto_depIdxs = []int32{
 	3,  // 16: can.CANNode.Join:input_type -> can.JoinRequest
 	5,  // 17: can.CANNode.Get:input_type -> can.GetRequest
 	7,  // 18: can.CANNode.Put:input_type -> can.PutRequest
-	9,  // 19: can.CANNode.AddNeighbor:input_type -> can.AddNeighborRequest
-	11, // 20: can.CANNode.Heartbeat:input_type -> can.HeartbeatRequest
-	13, // 21: can.CANNode.SendNeighbourInfo:input_type -> can.NeighbourInfoRequest
-	15, // 22: can.CANNode.InitiateLeave:input_type -> can.LeaveRequest
-	17, // 23: can.CANNode.PerformDFS:input_type -> can.DFSRequest
-	19, // 24: can.CANNode.TakeoverZone:input_type -> can.TakeoverRequest
-	21, // 25: can.CANNode.TransferData:input_type -> can.TransferDataRequest
-	23, // 26: can.CANNode.GetNeighbors:input_type -> can.GetNeighborsRequest
-	25, // 27: can.CANNode.NotifyZoneMerge:input_type -> can.ZoneMergeNotification
-	27, // 28: can.CANNode.ElectTakeoverCoordinator:input_type -> can.CoordinatorElectionRequest
-	4,  // 29: can.CANNode.Join:output_type -> can.JoinResponse
-	6,  // 30: can.CANNode.Get:output_type -> can.GetResponse
-	8,  // 31: can.CANNode.Put:output_type -> can.PutResponse
-	10, // 32: can.CANNode.AddNeighbor:output_type -> can.AddNeighborResponse
-	12, // 33: can.CANNode.Heartbeat:output_type -> can.HeartbeatResponse
-	14, // 34: can.CANNode.SendNeighbourInfo:output_type -> can.NeighbourInfoResponse
-	16, // 35: can.CANNode.InitiateLeave:output_type -> can.LeaveResponse
-	18, // 36: can.CANNode.PerformDFS:output_type -> can.DFSResponse
-	20, // 37: can.CANNode.TakeoverZone:output_type -> can.TakeoverResponse
-	22, // 38: can.CANNode.TransferData:output_type -> can.TransferDataResponse
-	24, // 39: can.CANNode.GetNeighbors:output_type -> can.GetNeighborsResponse
-	26, // 40: can.CANNode.NotifyZoneMerge:output_type -> can.ZoneMergeResponse
-	28, // 41: can.CANNode.ElectTakeoverCoordinator:output_type -> can.CoordinatorElectionResponse
-	29, // [29:42] is the sub-list for method output_type
-	16, // [16:29] is the sub-list for method input_type
+	9,  // 19: can.CANNode.Delete:input_type -> can.DeleteRequest
+	11, // 20: can.CANNode.AddNeighbor:input_type -> can.AddNeighborRequest
+	13, // 21: can.CANNode.Heartbeat:input_type -> can.HeartbeatRequest
+	15, // 22: can.CANNode.SendNeighbourInfo:input_type -> can.NeighbourInfoRequest
+	17, // 23: can.CANNode.InitiateLeave:input_type -> can.LeaveRequest
+	19, // 24: can.CANNode.PerformDFS:input_type -> can.DFSRequest
+	21, // 25: can.CANNode.TakeoverZone:input_type -> can.TakeoverRequest
+	23, // 26: can.CANNode.TransferData:input_type -> can.TransferDataRequest
+	25, // 27: can.CANNode.GetNeighbors:input_type -> can.GetNeighborsRequest
+	27, // 28: can.CANNode.NotifyZoneMerge:input_type -> can.ZoneMergeNotification
+	29, // 29: can.CANNode.ElectTakeoverCoordinator:input_type -> can.CoordinatorElectionRequest
+	4,  // 30: can.CANNode.Join:output_type -> can.JoinResponse
+	6,  // 31: can.CANNode.Get:output_type -> can.GetResponse
+	8,  // 32: can.CANNode.Put:output_type -> can.PutResponse
+	10, // 33: can.CANNode.Delete:output_type -> can.DeleteResponse
+	12, // 34: can.CANNode.AddNeighbor:output_type -> can.AddNeighborResponse
+	14, // 35: can.CANNode.Heartbeat:output_type -> can.HeartbeatResponse
+	16, // 36: can.CANNode.SendNeighbourInfo:output_type -> can.NeighbourInfoResponse
+	18, // 37: can.CANNode.InitiateLeave:output_type -> can.LeaveResponse
+	20, // 38: can.CANNode.PerformDFS:output_type -> can.DFSResponse
+	22, // 39: can.CANNode.TakeoverZone:output_type -> can.TakeoverResponse
+	24, // 40: can.CANNode.TransferData:output_type -> can.TransferDataResponse
+	26, // 41: can.CANNode.GetNeighbors:output_type -> can.GetNeighborsResponse
+	28, // 42: can.CANNode.NotifyZoneMerge:output_type -> can.ZoneMergeResponse
+	30, // 43: can.CANNode.ElectTakeoverCoordinator:output_type -> can.CoordinatorElectionResponse
+	30, // [30:44] is the sub-list for method output_type
+	16, // [16:30] is the sub-list for method input_type
 	16, // [16:16] is the sub-list for extension type_name
 	16, // [16:16] is the sub-list for extension extendee
 	0,  // [0:16] is the sub-list for field type_name
@@ -1758,7 +1865,7 @@ func file_can_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_can_proto_rawDesc), len(file_can_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   29,
+			NumMessages:   31,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

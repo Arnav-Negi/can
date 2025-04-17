@@ -27,7 +27,7 @@ type LatencyStats struct {
 
 func main() {
 	// Define command line flags
-	bootstrapIP := flag.String("bootstrap", "127.0.0.1:8000", "IP:Port of the already running bootstrap node")
+	bootstrapIP := flag.String("bootstrap", "127.0.0.1:5000", "IP:Port of the already running bootstrap node")
 	numNodes := flag.Int("nodes", 5, "Number of DHT nodes to create")
 	numOps := flag.Int("ops", 100, "Number of operations (put/get pairs) to perform")
 	valueSize := flag.Int("value-size", 1024, "Size of random values in bytes")
@@ -54,7 +54,7 @@ func main() {
 			dht := can.NewDHT()
 
 			go func() {
-				err := dht.StartNode("localhost", 5050+nodeID) // Use random port
+				err := dht.StartNode("127.0.0.1", 5050+nodeID, *bootstrapIP) // Use random port
 				if err != nil {
 					log.Fatalf("Node %d failed to start: %v", nodeID, err)
 				}
