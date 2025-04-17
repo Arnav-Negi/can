@@ -9,7 +9,6 @@ import (
 	"log"
 	"net"
 	"sync"
-	"time"
 )
 
 const (
@@ -71,20 +70,15 @@ func (s *BootstrapServer) JoinInfo(ctx context.Context, req *pb.JoinInfoRequest)
 
 	// Create a response with the CAN network dimensions, server's node ID,
 	// and the list of active nodes
-	startTime := time.Now()
 	response := &pb.JoinInfoResponse{
 		Dimensions:  s.dimensions,
 		NumHashes:   s.numHashes,
 		NodeId:      s.idService.NewId(),
 		ActiveNodes: s.getActiveNodes(),
 	}
-	endTime := time.Now()
-	log.Printf("Join %s resp info took: %v", response.NodeId, endTime.Sub(startTime))
-	startTime = time.Now()
+
 	// Add the requesting node to active nodes if not already present
 	s.addNode(req.Address)
-	endTime = time.Now()
-	log.Printf("Join %s add node info took: %v", response.NodeId, endTime.Sub(startTime))
 
 	return response, nil
 }
