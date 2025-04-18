@@ -8,6 +8,7 @@ package protofiles
 
 import (
 	context "context"
+	empty "github.com/golang/protobuf/ptypes/empty"
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
@@ -19,7 +20,10 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	BootstrapService_JoinInfo_FullMethodName = "/can.BootstrapService/JoinInfo"
+	BootstrapService_JoinInfo_FullMethodName     = "/can.BootstrapService/JoinInfo"
+	BootstrapService_Leave_FullMethodName        = "/can.BootstrapService/Leave"
+	BootstrapService_GetRootCApem_FullMethodName = "/can.BootstrapService/GetRootCApem"
+	BootstrapService_SignCSR_FullMethodName      = "/can.BootstrapService/SignCSR"
 )
 
 // BootstrapServiceClient is the client API for BootstrapService service.
@@ -30,6 +34,12 @@ const (
 type BootstrapServiceClient interface {
 	// JoinInfo returns a list of active nodes in the network
 	JoinInfo(ctx context.Context, in *JoinInfoRequest, opts ...grpc.CallOption) (*JoinInfoResponse, error)
+	// Leave informs rpc of the leaving node
+	Leave(ctx context.Context, in *BootstrapLeaveInfo, opts ...grpc.CallOption) (*BootstrapLeaveResponse, error)
+	// GetRootCApem returns the root CA certificate
+	GetRootCApem(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*RootCApemResponse, error)
+	// SignCSR signs a Certificate Signing Request (CSR) and returns the signed certificate
+	SignCSR(ctx context.Context, in *SignCSRRequest, opts ...grpc.CallOption) (*SignCSRResponse, error)
 }
 
 type bootstrapServiceClient struct {
@@ -50,6 +60,36 @@ func (c *bootstrapServiceClient) JoinInfo(ctx context.Context, in *JoinInfoReque
 	return out, nil
 }
 
+func (c *bootstrapServiceClient) Leave(ctx context.Context, in *BootstrapLeaveInfo, opts ...grpc.CallOption) (*BootstrapLeaveResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(BootstrapLeaveResponse)
+	err := c.cc.Invoke(ctx, BootstrapService_Leave_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bootstrapServiceClient) GetRootCApem(ctx context.Context, in *empty.Empty, opts ...grpc.CallOption) (*RootCApemResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RootCApemResponse)
+	err := c.cc.Invoke(ctx, BootstrapService_GetRootCApem_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *bootstrapServiceClient) SignCSR(ctx context.Context, in *SignCSRRequest, opts ...grpc.CallOption) (*SignCSRResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(SignCSRResponse)
+	err := c.cc.Invoke(ctx, BootstrapService_SignCSR_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // BootstrapServiceServer is the server API for BootstrapService service.
 // All implementations must embed UnimplementedBootstrapServiceServer
 // for forward compatibility.
@@ -58,6 +98,12 @@ func (c *bootstrapServiceClient) JoinInfo(ctx context.Context, in *JoinInfoReque
 type BootstrapServiceServer interface {
 	// JoinInfo returns a list of active nodes in the network
 	JoinInfo(context.Context, *JoinInfoRequest) (*JoinInfoResponse, error)
+	// Leave informs rpc of the leaving node
+	Leave(context.Context, *BootstrapLeaveInfo) (*BootstrapLeaveResponse, error)
+	// GetRootCApem returns the root CA certificate
+	GetRootCApem(context.Context, *empty.Empty) (*RootCApemResponse, error)
+	// SignCSR signs a Certificate Signing Request (CSR) and returns the signed certificate
+	SignCSR(context.Context, *SignCSRRequest) (*SignCSRResponse, error)
 	mustEmbedUnimplementedBootstrapServiceServer()
 }
 
@@ -70,6 +116,15 @@ type UnimplementedBootstrapServiceServer struct{}
 
 func (UnimplementedBootstrapServiceServer) JoinInfo(context.Context, *JoinInfoRequest) (*JoinInfoResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JoinInfo not implemented")
+}
+func (UnimplementedBootstrapServiceServer) Leave(context.Context, *BootstrapLeaveInfo) (*BootstrapLeaveResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Leave not implemented")
+}
+func (UnimplementedBootstrapServiceServer) GetRootCApem(context.Context, *empty.Empty) (*RootCApemResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetRootCApem not implemented")
+}
+func (UnimplementedBootstrapServiceServer) SignCSR(context.Context, *SignCSRRequest) (*SignCSRResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method SignCSR not implemented")
 }
 func (UnimplementedBootstrapServiceServer) mustEmbedUnimplementedBootstrapServiceServer() {}
 func (UnimplementedBootstrapServiceServer) testEmbeddedByValue()                          {}
@@ -110,6 +165,60 @@ func _BootstrapService_JoinInfo_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _BootstrapService_Leave_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(BootstrapLeaveInfo)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BootstrapServiceServer).Leave(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BootstrapService_Leave_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BootstrapServiceServer).Leave(ctx, req.(*BootstrapLeaveInfo))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BootstrapService_GetRootCApem_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(empty.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BootstrapServiceServer).GetRootCApem(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BootstrapService_GetRootCApem_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BootstrapServiceServer).GetRootCApem(ctx, req.(*empty.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _BootstrapService_SignCSR_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SignCSRRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(BootstrapServiceServer).SignCSR(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: BootstrapService_SignCSR_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(BootstrapServiceServer).SignCSR(ctx, req.(*SignCSRRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // BootstrapService_ServiceDesc is the grpc.ServiceDesc for BootstrapService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -120,6 +229,18 @@ var BootstrapService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JoinInfo",
 			Handler:    _BootstrapService_JoinInfo_Handler,
+		},
+		{
+			MethodName: "Leave",
+			Handler:    _BootstrapService_Leave_Handler,
+		},
+		{
+			MethodName: "GetRootCApem",
+			Handler:    _BootstrapService_GetRootCApem_Handler,
+		},
+		{
+			MethodName: "SignCSR",
+			Handler:    _BootstrapService_SignCSR_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -17,12 +17,16 @@ func NewDHT() *DHT {
 	}
 }
 
+func (dht *DHT) Info() (string, []float32, []float32) {
+	return dht.Node.GetInfo()
+}
+
 // StartNode This function starts the gRPC server for the DHT node.
 // It listens for incoming requests and handles them.
 // To be called using goroutines
 // port: Port to listen on, 0 for random port
-func (dht *DHT) StartNode(ip string, port int) error {
-	return dht.Node.StartGRPCServer(ip, port)
+func (dht *DHT) StartNode(ip string, port int, bootstrapAddress string) error {
+	return dht.Node.StartGRPCServer(ip, port, bootstrapAddress)
 }
 
 // Join Bootstrap This starts the DHT, might take some time to set up and join
@@ -53,5 +57,14 @@ func (dht *DHT) Get(key string) ([]byte, error) {
 	return dht.Node.GetImplementation(
 		key,
 		-1, // The hash ID to query, -1 for all
+	)
+}
+
+// Delete This function is used to delete a value from the DHT.
+// Error if the key does not exist or unable to delete the value.
+func (dht *DHT) Delete(key string) error {
+	return dht.Node.DeleteImplementation(
+		key, 
+		-1,  // The hash ID to query, -1 for all
 	)
 }

@@ -5,16 +5,34 @@ import (
 	"fmt"
 	"github.com/Arnav-Negi/can/internal/topology"
 	pb "github.com/Arnav-Negi/can/protofiles"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 	"sort"
 	"sync"
-	//"google.golang.org/grpc/codes"
-	//"google.golang.org/grpc/status"
+	//"time"
 )
 
 // LeaveImplementation handles the graceful leaving of a node from the CAN network
 func (node *Node) LeaveImplementation() error {
 	node.logger.Printf("Node %s is leaving the network", node.Info.NodeId)
 	node.logger.Printf("My current neighbors: %v", node.RoutingTable.Neighbours)
+
+	// first tell bootstrap server about leaving
+	bootstrapServ, err := grpc.NewClient(node.bootstrapIP, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithUnaryInterceptor(LoggingUnaryClientInterceptor(node.logger)))
+	if err != nil {
+		return err
+	}
+
+	bootstrapClient := pb.NewBootstrapServiceClient(bootstrapServ)
+	bootstrapClient.Leave(context.Background(), &pb.BootstrapLeaveInfo{
+		NodeAddress: node.Info.IpAddress,
+	})
+
+	// If no neighbours, simply return
+	if len(node.RoutingTable.Neighbours) == 0 {
+		return nil
+	}
 
 	// Find the smallest neighbor by volume
 	smallestNeighbor, err := node.findSmallestNeighbor()
@@ -34,6 +52,8 @@ func (node *Node) LeaveImplementation() error {
 		LeavingNodeId: node.Info.NodeId,
 		LeavingZone:   zoneToProto(node.Info.Zone),
 	})
+	node.grpcServer.GracefulStop()
+
 	if err != nil {
 		return fmt.Errorf("failed to initiate leave process: %v", err)
 	}
@@ -49,6 +69,7 @@ func (node *Node) LeaveImplementation() error {
 		return err
 	}
 	node.logger.Printf("Node %s has successfully left the network", node.Info.NodeId)
+
 	return nil
 }
 
@@ -224,6 +245,13 @@ func (node *Node) abutsDimension(zone1, zone2 topology.Zone, dim int) bool {
 
 // notifyTakeoverNode notifies a node to take over the zone of a leaving node
 func (node *Node) notifyTakeoverNode(takingOverNode topology.NodeInfo, leavingNodeId string, leavingZone topology.Zone) error {
+	conn, err := node.getGRPCConn(takingOverNode.IpAddress)
+	if err != nil {
+		return fmt.Errorf("failed to connect to takeover node: %v", err)
+	}
+
+	client := pb.NewCANNodeClient(conn)
+
 	// Get the leaving node's IP address from our routing table
 	var leavingNodeIP string
 	for _, neighbor := range node.RoutingTable.Neighbours {
@@ -243,12 +271,12 @@ func (node *Node) notifyTakeoverNode(takingOverNode topology.NodeInfo, leavingNo
 	}
 
 	// If takingOverNode is not the sibling of the leaving node
-	conn, err := node.getGRPCConn(takingOverNode.IpAddress)
+	conn, err = node.getGRPCConn(takingOverNode.IpAddress)
 	if err != nil {
 		return fmt.Errorf("failed to connect to takeover node: %v", err)
 	}
 
-	client := pb.NewCANNodeClient(conn)
+	client = pb.NewCANNodeClient(conn)
 
 	node.logger.Printf("My current length of NeighInfo: %d", len(node.NeighInfo))
 	node.logger.Printf("Current length of NeighInfo[leavingNodeId]: %d", len(node.NeighInfo[leavingNodeId]))
@@ -302,6 +330,7 @@ func (node *Node) TakeoverSibling(leavingNodeIP string, leavingNodeId string, le
 		// Continue anyway - this is recoverable
 	}
 
+	// Update our zone
 	oldZone := node.Info.Zone
 	node.Info.Zone = mergedZone
 

@@ -3,13 +3,11 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/Arnav-Negi/can"
 	"log"
 	"math/rand"
-	"os"
 	"sync"
 	"time"
-
-	"github.com/Arnav-Negi/can"
 )
 
 type Barrier struct {
@@ -45,18 +43,17 @@ func (b *Barrier) Wait() {
 	b.cond.L.Unlock()
 }
 
+func shouldLeave(prob float64) bool {
+	return rand.Float64() < prob
+}
+
 func main() {
 	// Define command line flags
-	bootstrapIP := flag.String("bootstrap", "127.0.0.1:5000", "IP:Port of the bootstrap node")
+	bootstrapIP := flag.String("bootstrap", "localhost:5000", "IP:Port of the bootstrap node")
 	numNodes := flag.Int("nodes", 5, "Number of DHT nodes to create")
 	flag.Parse()
 
 	log.Printf("Starting DHT scale test with %d nodes, bootstrap: %s", *numNodes, *bootstrapIP)
-	// Clean up any existing directories
-	for i := 0; i < *numNodes; i++ {
-		dir := fmt.Sprintf("certs/node-%d", i)
-		os.RemoveAll(dir)
-	}	
 
 	// Create a wait group to wait for all nodes to complete their operations
 	var wg sync.WaitGroup
@@ -75,7 +72,7 @@ func main() {
 
 			// Start the node on a random port
 			go func() {
-				err := dht.StartNode("127.0.0.1", 5050+nodeID, *bootstrapIP) // 0 for random port
+				err := dht.StartNode("localhost", 5050+nodeID) // 0 for random port
 				if err != nil {
 					//logMutex.Lock()
 					log.Printf("ERROR Node %d failed to start: %v", nodeID, err)
@@ -135,8 +132,27 @@ func main() {
 			// Wait for data to propagate
 			bar.Wait()
 
+			left := false
+
+			// Make nodes leave with 0.25 chance
+			if shouldLeave(0.25) {
+				mu.Lock()
+				log.Printf("Node %d: Leaving", nodeID)
+				err := dht.Leave()
+				if err != nil {
+					log.Printf("ERROR Node %d failed to leave: %v", nodeID, err)
+				}
+				log.Printf("Node %d: Left", nodeID)
+				left = true
+				mu.Unlock()
+			}
+			bar.Wait()
+
 			// Retrieve our key-value pairs and verify
 			for key, expectedValue := range kvPairs {
+				if left {
+					break
+				}
 				//logMutex.Lock()
 				log.Printf("Node %d: Getting %s", nodeID, key)
 				//logMutex.Unlock()
@@ -168,7 +184,7 @@ func main() {
 
 			// Now try to retrieve other nodes' data
 			// Each node will try to get a key from the previous node
-			if nodeID > 0 {
+			if nodeID > 0 && !left {
 				otherKey := fmt.Sprintf("node-%d-key-0", nodeID-1)
 				//logMutex.Lock()
 				log.Printf("Node %d: Getting key from another node: %s", nodeID, otherKey)

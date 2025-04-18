@@ -15,6 +15,9 @@ service CANNode {
   // Put a key-value pair in the CAN network
   rpc Put(PutRequest) returns (PutResponse);
 
+  // Delete a key-value pair in the CAN network
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+
   // Add a neighbor to the routing table
   rpc AddNeighbor(AddNeighborRequest) returns (AddNeighborResponse);
 
@@ -89,6 +92,15 @@ message PutRequest {
 
 message PutResponse {
   bool success = 1; // Whether the key-value pair was stored successfully
+}
+
+// Request for deleting a key-value pair
+message DeleteRequest {
+  string key = 1;
+  int32 hash_to_use = 2; // Hash function to use for the key
+}
+message DeleteResponse {
+  bool success = 1; // Whether the key-value pair was deleted successfully
 }
 
 // Request for adding a neighbor
