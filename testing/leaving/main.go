@@ -49,7 +49,7 @@ func shouldLeave(prob float64) bool {
 
 func main() {
 	// Define command line flags
-	bootstrapIP := flag.String("bootstrap", "localhost:5000", "IP:Port of the bootstrap node")
+	bootstrapIP := flag.String("bootstrap", "127.0.0.1:5000", "IP:Port of the bootstrap node")
 	numNodes := flag.Int("nodes", 5, "Number of DHT nodes to create")
 	flag.Parse()
 
@@ -72,7 +72,7 @@ func main() {
 
 			// Start the node on a random port
 			go func() {
-				err := dht.StartNode("localhost", 5050+nodeID) // 0 for random port
+				err := dht.StartNode("127.0.0.1", 5050+nodeID, *bootstrapIP) // 0 for random port
 				if err != nil {
 					//logMutex.Lock()
 					log.Printf("ERROR Node %d failed to start: %v", nodeID, err)
@@ -144,6 +144,7 @@ func main() {
 				}
 				log.Printf("Node %d: Left", nodeID)
 				left = true
+				time.Sleep(4 * time.Second)
 				mu.Unlock()
 			}
 			bar.Wait()
