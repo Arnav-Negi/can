@@ -2,6 +2,7 @@ package dht
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"google.golang.org/grpc/codes"
@@ -31,6 +32,7 @@ func (node *Node) GetHelper(helperCtx context.Context, key string, hashIdx int) 
 		return nil, status.Errorf(codes.Unavailable, "No nodes found in the routing table")
 	}
 
+	var errCopy error
 	// Send the get request to the closest node
 	for _, closestNode := range closestNodes {
 		// before querying, check if ctx is done, if so return
@@ -58,9 +60,10 @@ func (node *Node) GetHelper(helperCtx context.Context, key string, hashIdx int) 
 		}
 
 		// else keep trying
+		errCopy = err
 	}
 
-	return nil, status.Errorf(codes.Unavailable, "DHT is unavailable")
+	return nil, status.Errorf(codes.Unavailable, errCopy.Error())
 }
 
 // GetImplementation This function is used to retrieve a value from the DHT.
@@ -136,16 +139,18 @@ func (node *Node) GetImplementation(key string, hashToUse int) ([]byte, error) {
 
 	// scan errChan, if all notFound then return notFound (no replicas exist)
 	allNotFound := true
+	var getErr error
 	for i := 0; i < len(tryList); i++ {
 		err := <-errChan
 		if err != nil && status.Code(err) != codes.NotFound {
 			allNotFound = false
+			getErr = err
 		}
 	}
 
 	if allNotFound {
 		return nil, status.Errorf(codes.NotFound, "Key not found in the DHT")
 	} else {
-		return nil, status.Errorf(codes.Unavailable, "DHT is unavailable")
+		return nil, status.Errorf(codes.Unavailable, fmt.Sprintf("DHT is unavailable: %v", getErr))
 	}
 }

@@ -34,6 +34,8 @@ rm -rf ./testing/scale/logs
 rm -rf ./testing/scale/certs
 rm -rf ./testing/latency/logs
 rm -rf ./testing/latency/certs
+rm -rf ./testing/leaving/logs
+rm -rf ./testing/leaving/certs
 ```
 
 At the bootstrap node, root CA needs to be setup and generated from the script.
@@ -196,6 +198,7 @@ The system includes test files to verify functionality and performance:
 
 1. Scale test: Tests the DHT with multiple nodes
 2. Latency test: Measures performance characteristics
+3. Leaving test: Tests the graceful leaving of nodes
 
 ## Technical Details
 

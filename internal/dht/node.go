@@ -352,7 +352,7 @@ func (node *Node) JoinImplementation(bootstrapAddr string) error {
 	}
 
 	logFilePath := logDir + "/" + node.Info.NodeId + ".log"
-	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	if err != nil {
 		return err
 	}

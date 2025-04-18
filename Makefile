@@ -17,6 +17,8 @@ clean:
 	- rm -rf ./testing/scale/certs
 	- rm -rf ./testing/latency/logs
 	- rm -rf ./testing/latency/certs
+	- rm -rf ./testing/leaving/logs
+	- rm -rf ./testing/leaving/certs
 
 all:
 	make can
