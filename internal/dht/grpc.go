@@ -186,7 +186,11 @@ func (node *Node) SendNeighbourInfo(ctx context.Context, req *pb.NeighbourInfoRe
 			Zone:      topology.NewZoneFromProto(n.Zone),
 		}
 	}
+
+	//node.logger.Printf("Received neighbour info from node %s", req.NodeId)
+	//node.logger.Printf("Received neighbour info : %v", neighbourInfo)
 	node.NeighInfo[req.NodeId] = neighbourInfo
+	//node.logger.Printf("Stored neighbour info : %v", node.NeighInfo)
 
 	return &pb.NeighbourInfoResponse{Success: true}, nil
 }
@@ -233,11 +237,7 @@ func (node *Node) InitiateLeave(ctx context.Context, req *pb.LeaveRequest) (*pb.
 		}, nil
 	}
 
-	// Check if the found node is a sibling of Leaving node
-	//isSibling := node.areSiblings(takingOverNode.Zone, leavingZone)
-
 	// Notify the takeover node to take over the leaving node's zone
-	//err = node.notifyTakeoverNode(takingOverNode, req.LeavingNodeId, leavingZone, isSibling)
 	err = node.notifyTakeoverNode(takingOverNode, req.LeavingNodeId, leavingZone)
 	if err != nil {
 		errMsg := fmt.Sprintf("Failed to notify takeover node: %v", err)
@@ -260,7 +260,7 @@ func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSRe
 
 	parentZone := topology.NewZoneFromProto(req.ParentZone)
 
-	// Check if this node and the leaving node are siblings
+	// Check if this node and the parent node are siblings
 	if node.areSiblings(node.Info.Zone, parentZone) {
 		return &pb.DFSResponse{
 			FoundSibling:    true,
@@ -311,8 +311,6 @@ func (node *Node) PerformDFS(ctx context.Context, req *pb.DFSRequest) (*pb.DFSRe
 // TakeoverZone handles a request to take over another node's zone
 func (node *Node) TakeoverZone(ctx context.Context, req *pb.TakeoverRequest) (*pb.TakeoverResponse, error) {
 	node.logger.Printf("Received takeover request for node %s", req.LeavingNodeId)
-	node.mu.Lock()
-	defer node.mu.Unlock()
 
 	var siblingNeighbor topology.NodeInfo
 	for _, neighbor := range node.RoutingTable.Neighbours {
@@ -353,6 +351,9 @@ func (node *Node) TakeoverZone(ctx context.Context, req *pb.TakeoverRequest) (*p
 			ErrorMessage: errMsg,
 		}, nil
 	}
+
+	node.mu.Lock()
+	defer node.mu.Unlock()
 
 	zoneToBeTakenOver := topology.NewZoneFromProto(req.LeavingZone)
 
@@ -440,6 +441,9 @@ func (node *Node) TransferData(ctx context.Context, req *pb.TransferDataRequest)
 			Value: value,
 		})
 	})
+
+	node.logger.Printf("Transferring %d key-value pairs", len(kvPairs))
+	//node.logger.Printf("Data: %v", kvPairs)
 
 	return &pb.TransferDataResponse{
 		Data: kvPairs,

@@ -21,6 +21,8 @@ func (node *Node) HeartbeatRoutine() {
 		neighbours := node.RoutingTable.Neighbours
 		node.mu.RUnlock()
 
+		node.NotifyAllNeighboursOfTwoHopInfo()
+
 		var wg sync.WaitGroup
 		for _, neighbour := range neighbours {
 			wg.Add(1)
@@ -102,9 +104,9 @@ func (node *Node) CleanupStaleConnections() {
 	node.mu.Unlock()
 
 	// Handle crashed nodes
-	for _, crashed := range crashedNodes {
-		go node.HandleCrashDetection(crashed.id, crashed.address)
-	}
+	//for _, crashed := range crashedNodes {
+	//	go node.HandleCrashDetection(crashed.id, crashed.address)
+	//}
 
 	if dirty {
 		node.NotifyAllNeighboursOfTwoHopInfo()

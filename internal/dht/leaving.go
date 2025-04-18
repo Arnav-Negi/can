@@ -7,7 +7,6 @@ import (
 	pb "github.com/Arnav-Negi/can/protofiles"
 	"sort"
 	"sync"
-	"time"
 	//"google.golang.org/grpc/codes"
 	//"google.golang.org/grpc/status"
 )
@@ -15,6 +14,7 @@ import (
 // LeaveImplementation handles the graceful leaving of a node from the CAN network
 func (node *Node) LeaveImplementation() error {
 	node.logger.Printf("Node %s is leaving the network", node.Info.NodeId)
+	node.logger.Printf("My current neighbors: %v", node.RoutingTable.Neighbours)
 
 	// Find the smallest neighbor by volume
 	smallestNeighbor, err := node.findSmallestNeighbor()
@@ -250,6 +250,10 @@ func (node *Node) notifyTakeoverNode(takingOverNode topology.NodeInfo, leavingNo
 
 	client := pb.NewCANNodeClient(conn)
 
+	node.logger.Printf("My current length of NeighInfo: %d", len(node.NeighInfo))
+	node.logger.Printf("Current length of NeighInfo[leavingNodeId]: %d", len(node.NeighInfo[leavingNodeId]))
+	node.logger.Printf("Current neighbours of leaving node: %v", node.NeighInfo[leavingNodeId])
+
 	pbNeighbours := make([]*pb.Node, 0, len(node.NeighInfo[leavingNodeId]))
 	for _, neighbor := range node.NeighInfo[leavingNodeId] {
 		pbNeighbours = append(pbNeighbours, &pb.Node{
@@ -336,40 +340,6 @@ func (node *Node) TakeoverSibling(leavingNodeIP string, leavingNodeId string, le
 	return nil
 }
 
-//func (node *Node) HandZoneToSibling(sibling topology.NodeInfo) error {
-//	conn, err := node.getGRPCConn(sibling.IpAddress)
-//	if err != nil {
-//		return fmt.Errorf("failed to connect to sibling node: %v", err)
-//	}
-//
-//	client := pb.NewCANNodeClient(conn)
-//
-//	mergedZone, err := node.mergeZones(node.Info.Zone, sibling.Zone)
-//
-//	pbNeighbors := make([]*pb.Node, 0, len(node.RoutingTable.Neighbours))
-//	for _, neighbor := range node.RoutingTable.Neighbours {
-//		pbNeighbors = append(pbNeighbors, &pb.Node{
-//			NodeId:  neighbor.NodeId,
-//			Address: neighbor.IpAddress,
-//			Zone:    zoneToProto(neighbor.Zone),
-//		})
-//	}
-//
-//	response, err := client.UpdateSibling(context.Background(), &pb.UpdateSiblingRequest{
-//		NodeId:    node.Info.NodeId,
-//		NewZone:   zoneToProto(mergedZone),
-//		Neighbors: pbNeighbors,
-//	})
-//
-//	if err != nil {
-//		return fmt.Errorf("failed to notify sibling node: %v", err)
-//	}
-//	if !response.Success {
-//		return fmt.Errorf("failed to update sibling node: %s", response.ErrorMessage)
-//	}
-//	return nil
-//}
-
 // mergeZones combines two zones into one
 func (node *Node) mergeZones(zone1, zone2 topology.Zone) (topology.Zone, error) {
 	if !node.areSiblings(zone1, zone2) {
@@ -436,55 +406,6 @@ func (node *Node) fetchDataFromAnotherNode(leavingNodeAddress string) error {
 	return nil
 }
 
-// getLeavingNodeNeighbors gets the neighbors of a leaving node
-//func (node *Node) getLeavingNodeNeighbors(leavingNodeAddress string) ([]topology.NodeInfo, error) {
-//	conn, err := node.getGRPCConn(leavingNodeAddress)
-//	if err != nil {
-//		return nil, fmt.Errorf("failed to connect to leaving node: %v", err)
-//	}
-//
-//	client := pb.NewCANNodeClient(conn)
-//
-//	response, err := client.GetNeighbors(context.Background(), &pb.GetNeighborsRequest{})
-//
-//	if err != nil {
-//		return nil, fmt.Errorf("get neighbors request failed: %v", err)
-//	}
-//
-//	// Convert proto neighbors to NodeInfo
-//	neighbors := make([]topology.NodeInfo, 0, len(response.Neighbors))
-//	for _, n := range response.Neighbors {
-//		neighbors = append(neighbors, topology.NodeInfo{
-//			NodeId:    n.NodeId,
-//			IpAddress: n.Address,
-//			Zone:      topology.NewZoneFromProto(n.Zone),
-//		})
-//	}
-//
-//	return neighbors, nil
-//}
-
-// GetNeighbors handles a request to get all neighbors
-//func (node *Node) GetNeighbors(ctx context.Context, req *pb.GetNeighborsRequest) (*pb.GetNeighborsResponse, error) {
-//	node.logger.Printf("Sharing neighbor information")
-//	node.mu.RLock()
-//	defer node.mu.RUnlock()
-//
-//	// Convert to proto format
-//	protoNeighbors := make([]*pb.Node, 0, len(node.RoutingTable.Neighbours))
-//	for _, neighbor := range node.RoutingTable.Neighbours {
-//		protoNeighbors = append(protoNeighbors, &pb.Node{
-//			NodeId:  neighbor.NodeId,
-//			Address: neighbor.IpAddress,
-//			Zone:    zoneToProto(neighbor.Zone),
-//		})
-//	}
-//
-//	return &pb.GetNeighborsResponse{
-//		Neighbors: protoNeighbors,
-//	}, nil
-//}
-
 // notifyNeighborsAboutMerge notifies all neighbors about the zone merge
 func (node *Node) notifyNeighborsAboutMerge(oldZone, newZone topology.Zone, leavingNodeId string) {
 	var wg sync.WaitGroup
@@ -519,229 +440,229 @@ func (node *Node) notifyNeighborsAboutMerge(oldZone, newZone topology.Zone, leav
 	wg.Wait()
 }
 
-// HandleCrashDetection is called when a neighbor's heartbeat fails
-func (node *Node) HandleCrashDetection(crashedNodeId string, crashedNodeAddress string) {
-	node.logger.Printf("Detected crash of node %s", crashedNodeId)
-
-	// Get the crashed node's info from our routing table
-	var crashedNodeInfo topology.NodeInfo
-	found := false
-
-	node.mu.RLock()
-	for _, neighbor := range node.RoutingTable.Neighbours {
-		if neighbor.NodeId == crashedNodeId {
-			crashedNodeInfo = neighbor
-			found = true
-			break
-		}
-	}
-	node.mu.RUnlock()
-
-	if !found {
-		node.logger.Printf("Crashed node %s not found in routing table", crashedNodeId)
-		return
-	}
-
-	// Start takeover coordinator election
-	isCoordinator, err := node.electTakeoverCoordinator(crashedNodeInfo)
-	if err != nil {
-		node.logger.Printf("Error in coordinator election: %v", err)
-		return
-	}
-
-	if !isCoordinator {
-		// Not the coordinator, just wait for updates
-		return
-	}
-
-	// We are the coordinator, find a takeover node
-	takingOverNode, err := node.findTakeoverNodeDFS(crashedNodeInfo.Zone, crashedNodeId)
-	if err != nil {
-		node.logger.Printf("Failed to find takeover node for crashed node %s: %v", crashedNodeId, err)
-		return
-	}
-
-	// Notify the takeover node
-	err = node.notifyTakeoverNode(takingOverNode, crashedNodeId, crashedNodeInfo.Zone)
-	if err != nil {
-		node.logger.Printf("Failed to notify takeover node for crashed node %s: %v", crashedNodeId, err)
-		return
-	}
-
-	node.logger.Printf("Successfully coordinated recovery for crashed node %s", crashedNodeId)
-}
-
-// electTakeoverCoordinator decides if this node should be the coordinator for takeover
-// Returns true if this node is the coordinator, false otherwise
-func (node *Node) electTakeoverCoordinator(crashedNodeInfo topology.NodeInfo) (bool, error) {
-	node.mu.RLock()
-	myVolume := node.Info.Zone.CalculateVolume()
-	myNodeId := node.Info.NodeId
-	node.mu.RUnlock()
-
-	// Get the neighbors of the crashed node (from our 2-hop info)
-	crashedNodeNeighbors := make([]topology.NodeInfo, 0)
-
-	node.mu.RLock()
-	//for _, nbrInfo := range node.NeighInfo {
-	//	for _, neighbor := range node.RoutingTable.Neighbours {
-	//		if nbrInfo.NodeId == crashedNodeInfo.NodeId {
-	//			crashedNodeNeighbors = append(crashedNodeNeighbors, neighbor)
-	//		}
-	//	}
-	//}
-	node.mu.RUnlock()
-
-	// We need to add ourselves to the list if we're not already there
-	foundSelf := false
-	for _, nbr := range crashedNodeNeighbors {
-		if nbr.NodeId == myNodeId {
-			foundSelf = true
-			break
-		}
-	}
-
-	if !foundSelf {
-		node.mu.RLock()
-		crashedNodeNeighbors = append(crashedNodeNeighbors, *node.Info)
-		node.mu.RUnlock()
-	}
-
-	// Contact each neighbor to determine if we're the coordinator
-	var wg sync.WaitGroup
-	responses := make(chan bool, len(crashedNodeNeighbors))
-
-	for _, nbr := range crashedNodeNeighbors {
-		// Skip ourselves
-		if nbr.NodeId == myNodeId {
-			continue
-		}
-
-		wg.Add(1)
-		go func(neighbor topology.NodeInfo) {
-			defer wg.Done()
-
-			conn, err := node.getGRPCConn(neighbor.IpAddress)
-			if err != nil {
-				node.logger.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
-				// If we can't connect, assume they can't be coordinator
-				responses <- true
-				return
-			}
-
-			client := pb.NewCANNodeClient(conn)
-
-			response, err := client.ElectTakeoverCoordinator(context.Background(), &pb.CoordinatorElectionRequest{
-				CandidateNodeId: myNodeId,
-				CandidateVolume: myVolume,
-				CrashedNodeId:   crashedNodeInfo.NodeId,
-			})
-
-			if err != nil {
-				node.logger.Printf("Error in election with %s: %v", neighbor.NodeId, err)
-				// Assume we win if there's an error
-				responses <- true
-				return
-			}
-
-			// If false, the other node should be coordinator
-			responses <- response.ShouldBeCoordinator
-		}(nbr)
-	}
-
-	// Wait for all responses
-	wg.Wait()
-	close(responses)
-
-	// If all responses are true, we're the coordinator
-	isCoordinator := true
-	for r := range responses {
-		if !r {
-			isCoordinator = false
-			break
-		}
-	}
-
-	return isCoordinator, nil
-}
-
-// ElectTakeoverCoordinator handles election requests for takeover coordinator
-func (node *Node) ElectTakeoverCoordinator(ctx context.Context, req *pb.CoordinatorElectionRequest) (*pb.CoordinatorElectionResponse, error) {
-	node.mu.RLock()
-	defer node.mu.RUnlock()
-
-	myVolume := node.Info.Zone.CalculateVolume()
-	myNodeId := node.Info.NodeId
-
-	// Compare volumes - smaller volume wins (has priority to be coordinator)
-	if myVolume < req.CandidateVolume {
-		// I should be coordinator because I have smaller volume
-		return &pb.CoordinatorElectionResponse{
-			ShouldBeCoordinator: false,
-		}, nil
-	} else if myVolume > req.CandidateVolume {
-		// The candidate should be coordinator
-		return &pb.CoordinatorElectionResponse{
-			ShouldBeCoordinator: true,
-		}, nil
-	} else {
-		// Equal volumes, use node ID as tiebreaker (smaller ID wins)
-		return &pb.CoordinatorElectionResponse{
-			ShouldBeCoordinator: myNodeId > req.CandidateNodeId,
-		}, nil
-	}
-}
-
-// DetectNodeFailure is called periodically to check for failed nodes
-func (node *Node) DetectNodeFailure() {
-	node.mu.RLock()
-	neighbors := make([]topology.NodeInfo, len(node.RoutingTable.Neighbours))
-	copy(neighbors, node.RoutingTable.Neighbours)
-	node.mu.RUnlock()
-
-	for _, neighbor := range neighbors {
-		// Check if the neighbor is still in our routing table
-		//conn, err := node.getClientConn(neighbor.IpAddress)
-		_, err := node.getClientConn(neighbor.IpAddress)
-		if err != nil {
-			node.logger.Printf("Failed to connect to neighbor %s, marking as potentially failed", neighbor.NodeId)
-
-			// Try to contact node a few more times before declaring it crashed
-			failed := true
-			for i := 0; i < 3; i++ { // Try 3 times
-				time.Sleep(1 * time.Second)
-				conn, err := node.getGRPCConn(neighbor.IpAddress)
-				if err == nil {
-					err := conn.Close()
-					if err != nil {
-						return
-					}
-					failed = false
-					break
-				}
-			}
-
-			if failed {
-				node.logger.Printf("Confirmed failure of node %s, initiating crash recovery", neighbor.NodeId)
-				go node.HandleCrashDetection(neighbor.NodeId, neighbor.IpAddress)
-			}
-		} else {
-			// Neighbor is still up, update last heartbeat time
-			node.mu.Lock()
-			node.lastHeartbeat[neighbor.IpAddress] = time.Now()
-			node.mu.Unlock()
-		}
-	}
-}
-
-// StartCrashDetection starts a goroutine for detecting node failures
-func (node *Node) StartCrashDetection() {
-	go func() {
-		ticker := time.NewTicker(5 * time.Second)
-		defer ticker.Stop()
-
-		for range ticker.C {
-			node.DetectNodeFailure()
-		}
-	}()
-}
+//// HandleCrashDetection is called when a neighbor's heartbeat fails
+//func (node *Node) HandleCrashDetection(crashedNodeId string, crashedNodeAddress string) {
+//	node.logger.Printf("Detected crash of node %s", crashedNodeId)
+//
+//	// Get the crashed node's info from our routing table
+//	var crashedNodeInfo topology.NodeInfo
+//	found := false
+//
+//	node.mu.RLock()
+//	for _, neighbor := range node.RoutingTable.Neighbours {
+//		if neighbor.NodeId == crashedNodeId {
+//			crashedNodeInfo = neighbor
+//			found = true
+//			break
+//		}
+//	}
+//	node.mu.RUnlock()
+//
+//	if !found {
+//		node.logger.Printf("Crashed node %s not found in routing table", crashedNodeId)
+//		return
+//	}
+//
+//	// Start takeover coordinator election
+//	isCoordinator, err := node.electTakeoverCoordinator(crashedNodeInfo)
+//	if err != nil {
+//		node.logger.Printf("Error in coordinator election: %v", err)
+//		return
+//	}
+//
+//	if !isCoordinator {
+//		// Not the coordinator, just wait for updates
+//		return
+//	}
+//
+//	// We are the coordinator, find a takeover node
+//	takingOverNode, err := node.findTakeoverNodeDFS(crashedNodeInfo.Zone, crashedNodeId)
+//	if err != nil {
+//		node.logger.Printf("Failed to find takeover node for crashed node %s: %v", crashedNodeId, err)
+//		return
+//	}
+//
+//	// Notify the takeover node
+//	err = node.notifyTakeoverNode(takingOverNode, crashedNodeId, crashedNodeInfo.Zone)
+//	if err != nil {
+//		node.logger.Printf("Failed to notify takeover node for crashed node %s: %v", crashedNodeId, err)
+//		return
+//	}
+//
+//	node.logger.Printf("Successfully coordinated recovery for crashed node %s", crashedNodeId)
+//}
+//
+//// electTakeoverCoordinator decides if this node should be the coordinator for takeover
+//// Returns true if this node is the coordinator, false otherwise
+//func (node *Node) electTakeoverCoordinator(crashedNodeInfo topology.NodeInfo) (bool, error) {
+//	node.mu.RLock()
+//	myVolume := node.Info.Zone.CalculateVolume()
+//	myNodeId := node.Info.NodeId
+//	node.mu.RUnlock()
+//
+//	// Get the neighbors of the crashed node (from our 2-hop info)
+//	crashedNodeNeighbors := make([]topology.NodeInfo, 0)
+//
+//	node.mu.RLock()
+//	//for _, nbrInfo := range node.NeighInfo {
+//	//	for _, neighbor := range node.RoutingTable.Neighbours {
+//	//		if nbrInfo.NodeId == crashedNodeInfo.NodeId {
+//	//			crashedNodeNeighbors = append(crashedNodeNeighbors, neighbor)
+//	//		}
+//	//	}
+//	//}
+//	node.mu.RUnlock()
+//
+//	// We need to add ourselves to the list if we're not already there
+//	foundSelf := false
+//	for _, nbr := range crashedNodeNeighbors {
+//		if nbr.NodeId == myNodeId {
+//			foundSelf = true
+//			break
+//		}
+//	}
+//
+//	if !foundSelf {
+//		node.mu.RLock()
+//		crashedNodeNeighbors = append(crashedNodeNeighbors, *node.Info)
+//		node.mu.RUnlock()
+//	}
+//
+//	// Contact each neighbor to determine if we're the coordinator
+//	var wg sync.WaitGroup
+//	responses := make(chan bool, len(crashedNodeNeighbors))
+//
+//	for _, nbr := range crashedNodeNeighbors {
+//		// Skip ourselves
+//		if nbr.NodeId == myNodeId {
+//			continue
+//		}
+//
+//		wg.Add(1)
+//		go func(neighbor topology.NodeInfo) {
+//			defer wg.Done()
+//
+//			conn, err := node.getGRPCConn(neighbor.IpAddress)
+//			if err != nil {
+//				node.logger.Printf("Failed to connect to neighbor %s: %v", neighbor.NodeId, err)
+//				// If we can't connect, assume they can't be coordinator
+//				responses <- true
+//				return
+//			}
+//
+//			client := pb.NewCANNodeClient(conn)
+//
+//			response, err := client.ElectTakeoverCoordinator(context.Background(), &pb.CoordinatorElectionRequest{
+//				CandidateNodeId: myNodeId,
+//				CandidateVolume: myVolume,
+//				CrashedNodeId:   crashedNodeInfo.NodeId,
+//			})
+//
+//			if err != nil {
+//				node.logger.Printf("Error in election with %s: %v", neighbor.NodeId, err)
+//				// Assume we win if there's an error
+//				responses <- true
+//				return
+//			}
+//
+//			// If false, the other node should be coordinator
+//			responses <- response.ShouldBeCoordinator
+//		}(nbr)
+//	}
+//
+//	// Wait for all responses
+//	wg.Wait()
+//	close(responses)
+//
+//	// If all responses are true, we're the coordinator
+//	isCoordinator := true
+//	for r := range responses {
+//		if !r {
+//			isCoordinator = false
+//			break
+//		}
+//	}
+//
+//	return isCoordinator, nil
+//}
+//
+//// ElectTakeoverCoordinator handles election requests for takeover coordinator
+//func (node *Node) ElectTakeoverCoordinator(ctx context.Context, req *pb.CoordinatorElectionRequest) (*pb.CoordinatorElectionResponse, error) {
+//	node.mu.RLock()
+//	defer node.mu.RUnlock()
+//
+//	myVolume := node.Info.Zone.CalculateVolume()
+//	myNodeId := node.Info.NodeId
+//
+//	// Compare volumes - smaller volume wins (has priority to be coordinator)
+//	if myVolume < req.CandidateVolume {
+//		// I should be coordinator because I have smaller volume
+//		return &pb.CoordinatorElectionResponse{
+//			ShouldBeCoordinator: false,
+//		}, nil
+//	} else if myVolume > req.CandidateVolume {
+//		// The candidate should be coordinator
+//		return &pb.CoordinatorElectionResponse{
+//			ShouldBeCoordinator: true,
+//		}, nil
+//	} else {
+//		// Equal volumes, use node ID as tiebreaker (smaller ID wins)
+//		return &pb.CoordinatorElectionResponse{
+//			ShouldBeCoordinator: myNodeId > req.CandidateNodeId,
+//		}, nil
+//	}
+//}
+//
+//// DetectNodeFailure is called periodically to check for failed nodes
+//func (node *Node) DetectNodeFailure() {
+//	node.mu.RLock()
+//	neighbors := make([]topology.NodeInfo, len(node.RoutingTable.Neighbours))
+//	copy(neighbors, node.RoutingTable.Neighbours)
+//	node.mu.RUnlock()
+//
+//	for _, neighbor := range neighbors {
+//		// Check if the neighbor is still in our routing table
+//		//conn, err := node.getClientConn(neighbor.IpAddress)
+//		_, err := node.getClientConn(neighbor.IpAddress)
+//		if err != nil {
+//			node.logger.Printf("Failed to connect to neighbor %s, marking as potentially failed", neighbor.NodeId)
+//
+//			// Try to contact node a few more times before declaring it crashed
+//			failed := true
+//			for i := 0; i < 3; i++ { // Try 3 times
+//				time.Sleep(1 * time.Second)
+//				conn, err := node.getGRPCConn(neighbor.IpAddress)
+//				if err == nil {
+//					err := conn.Close()
+//					if err != nil {
+//						return
+//					}
+//					failed = false
+//					break
+//				}
+//			}
+//
+//			if failed {
+//				node.logger.Printf("Confirmed failure of node %s, initiating crash recovery", neighbor.NodeId)
+//				go node.HandleCrashDetection(neighbor.NodeId, neighbor.IpAddress)
+//			}
+//		} else {
+//			// Neighbor is still up, update last heartbeat time
+//			node.mu.Lock()
+//			node.lastHeartbeat[neighbor.IpAddress] = time.Now()
+//			node.mu.Unlock()
+//		}
+//	}
+//}
+//
+//// StartCrashDetection starts a goroutine for detecting node failures
+//func (node *Node) StartCrashDetection() {
+//	go func() {
+//		ticker := time.NewTicker(5 * time.Second)
+//		defer ticker.Stop()
+//
+//		for range ticker.C {
+//			node.DetectNodeFailure()
+//		}
+//	}()
+//}

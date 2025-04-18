@@ -236,6 +236,7 @@ func (node *Node) NotifyNeighbors() error {
 
 // NotifyAllNeighboursOfTwoHopInfo notifies all neighbours about the 2-hop information
 func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
+	//node.logger.Printf("NotifyAllNeighboursOfTwoHopInfo has been called for node %s", node.Info.NodeId)
 	node.mu.RLock()
 	neighbours := node.RoutingTable.Neighbours
 	node.mu.RUnlock()
@@ -268,6 +269,9 @@ func (node *Node) NotifyAllNeighboursOfTwoHopInfo() {
 
 			ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 			defer cancel()
+
+			//node.logger.Printf("Sending neighbour info to node %s", nbr.NodeId)
+			//node.logger.Printf("protoNeighbours: %v", protoNeighbours)
 
 			_, err = client.SendNeighbourInfo(ctx, &pb.NeighbourInfoRequest{
 				NodeId:     nodeId,
