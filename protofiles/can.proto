@@ -37,6 +37,8 @@ service CANNode {
   rpc NotifyZoneMerge(ZoneMergeNotification) returns (ZoneMergeResponse);
   rpc ElectTakeoverCoordinator(CoordinatorElectionRequest) returns (CoordinatorElectionResponse);
 
+  rpc UpdateSibling(UpdateSiblingRequest) returns (UpdateSiblingResponse);
+
 }
 
 
@@ -145,7 +147,9 @@ message TakeoverRequest {
   string leaving_node_id = 1;
   string leaving_node_address = 2;
   Zone leaving_zone = 3;
-  bool is_graceful = 4;  // Whether this is a graceful leave or a crash
+  repeated Node leaving_neighbors = 4; // List of neighboring nodes
+  bool is_graceful = 5;  // Whether this is a graceful leave or a crash
+//  bool is_sibling = 5; // Whether the leaving node is a sibling of the takeover node
 }
 
 message TakeoverResponse {
@@ -171,9 +175,10 @@ message GetNeighborsResponse {
 
 message ZoneMergeNotification {
   string takeover_node_id = 1;
-  Zone old_zone = 2;
-  Zone new_zone = 3;
-  string leaving_node_id = 4;
+  string takeover_address = 2;
+  Zone old_zone = 3;
+  Zone new_zone = 4;
+  string leaving_node_id = 5;
 }
 
 message ZoneMergeResponse {
@@ -188,4 +193,14 @@ message CoordinatorElectionRequest {
 
 message CoordinatorElectionResponse {
   bool should_be_coordinator = 1;
+}
+
+message UpdateSiblingRequest {
+  Node sibling = 1; // The sibling node to merge
+  string leaving_node_id = 2; // The node that is leaving
+}
+
+message UpdateSiblingResponse {
+  bool success = 1;
+  string error_message = 2;
 }

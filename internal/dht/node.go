@@ -27,7 +27,7 @@ type Node struct {
 
 	Info          *topology.NodeInfo
 	RoutingTable  *routing.RoutingTable
-	NeighInfo     []topology.NodeInfo
+	NeighInfo     map[string][]topology.NodeInfo
 	lastHeartbeat map[string]time.Time
 
 	KVStore    *store.MemoryStore
@@ -46,7 +46,7 @@ func NewNode() *Node {
 		conns:         make(map[string]*grpc.ClientConn),
 		IPAddress:     ipAddress,
 		RoutingTable:  nil,
-		NeighInfo:     make([]topology.NodeInfo, 0),
+		NeighInfo:     make(map[string][]topology.NodeInfo),
 		lastHeartbeat: make(map[string]time.Time),
 		KVStore:       store.NewMemoryStore(),
 		QueryCache:    nil,

@@ -32,6 +32,7 @@ const (
 	CANNode_GetNeighbors_FullMethodName             = "/can.CANNode/GetNeighbors"
 	CANNode_NotifyZoneMerge_FullMethodName          = "/can.CANNode/NotifyZoneMerge"
 	CANNode_ElectTakeoverCoordinator_FullMethodName = "/can.CANNode/ElectTakeoverCoordinator"
+	CANNode_UpdateSibling_FullMethodName            = "/can.CANNode/UpdateSibling"
 )
 
 // CANNodeClient is the client API for CANNode service.
@@ -62,6 +63,7 @@ type CANNodeClient interface {
 	GetNeighbors(ctx context.Context, in *GetNeighborsRequest, opts ...grpc.CallOption) (*GetNeighborsResponse, error)
 	NotifyZoneMerge(ctx context.Context, in *ZoneMergeNotification, opts ...grpc.CallOption) (*ZoneMergeResponse, error)
 	ElectTakeoverCoordinator(ctx context.Context, in *CoordinatorElectionRequest, opts ...grpc.CallOption) (*CoordinatorElectionResponse, error)
+	UpdateSibling(ctx context.Context, in *UpdateSiblingRequest, opts ...grpc.CallOption) (*UpdateSiblingResponse, error)
 }
 
 type cANNodeClient struct {
@@ -202,6 +204,16 @@ func (c *cANNodeClient) ElectTakeoverCoordinator(ctx context.Context, in *Coordi
 	return out, nil
 }
 
+func (c *cANNodeClient) UpdateSibling(ctx context.Context, in *UpdateSiblingRequest, opts ...grpc.CallOption) (*UpdateSiblingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateSiblingResponse)
+	err := c.cc.Invoke(ctx, CANNode_UpdateSibling_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // CANNodeServer is the server API for CANNode service.
 // All implementations must embed UnimplementedCANNodeServer
 // for forward compatibility.
@@ -230,6 +242,7 @@ type CANNodeServer interface {
 	GetNeighbors(context.Context, *GetNeighborsRequest) (*GetNeighborsResponse, error)
 	NotifyZoneMerge(context.Context, *ZoneMergeNotification) (*ZoneMergeResponse, error)
 	ElectTakeoverCoordinator(context.Context, *CoordinatorElectionRequest) (*CoordinatorElectionResponse, error)
+	UpdateSibling(context.Context, *UpdateSiblingRequest) (*UpdateSiblingResponse, error)
 	mustEmbedUnimplementedCANNodeServer()
 }
 
@@ -278,6 +291,9 @@ func (UnimplementedCANNodeServer) NotifyZoneMerge(context.Context, *ZoneMergeNot
 }
 func (UnimplementedCANNodeServer) ElectTakeoverCoordinator(context.Context, *CoordinatorElectionRequest) (*CoordinatorElectionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ElectTakeoverCoordinator not implemented")
+}
+func (UnimplementedCANNodeServer) UpdateSibling(context.Context, *UpdateSiblingRequest) (*UpdateSiblingResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateSibling not implemented")
 }
 func (UnimplementedCANNodeServer) mustEmbedUnimplementedCANNodeServer() {}
 func (UnimplementedCANNodeServer) testEmbeddedByValue()                 {}
@@ -534,6 +550,24 @@ func _CANNode_ElectTakeoverCoordinator_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _CANNode_UpdateSibling_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateSiblingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(CANNodeServer).UpdateSibling(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: CANNode_UpdateSibling_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(CANNodeServer).UpdateSibling(ctx, req.(*UpdateSiblingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // CANNode_ServiceDesc is the grpc.ServiceDesc for CANNode service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -592,6 +626,10 @@ var CANNode_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "ElectTakeoverCoordinator",
 			Handler:    _CANNode_ElectTakeoverCoordinator_Handler,
+		},
+		{
+			MethodName: "UpdateSibling",
+			Handler:    _CANNode_UpdateSibling_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
