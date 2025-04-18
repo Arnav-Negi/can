@@ -61,8 +61,8 @@ func NewNode() *Node {
 	return retNode
 }
 
-func (node *Node) GetInfo() (string, []float32, []float32) {
-	return node.Info.IpAddress, node.Info.Zone.GetCoordMins(), node.Info.Zone.GetCoordMaxs()
+func (node *Node) GetInfo() (string, string, []float32, []float32, []topology.NodeInfo, *store.MemoryStore) {
+	return node.Info.NodeId, node.Info.IpAddress, node.Info.Zone.GetCoordMins(), node.Info.Zone.GetCoordMaxs(), node.RoutingTable.Neighbours, node.KVStore
 }
 
 func GetRandomCoordinates(dims uint) []float32 {
@@ -150,7 +150,7 @@ func (node *Node) splitZone(coords []float32) (topology.Zone, map[string][]byte,
 			// Check if the key belongs to the new zone
 			if newZone.Contains(keyCoords) {
 				transferredData[key] = value
-			} else {
+			} else if node.Info.Zone.Contains(keyCoords) {
 				toRemove = false
 			}
 		}

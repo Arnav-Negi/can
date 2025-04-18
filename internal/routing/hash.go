@@ -4,7 +4,6 @@ import (
 	"encoding/binary"
 	"hash/fnv"
 	"math"
-	"strconv"
 )
 
 // MultiHash provides multiple hash functions to map keys to coordinates in a CAN space
@@ -25,16 +24,20 @@ func NewMultiHash(dimensions int, hashId int) *MultiHash {
 	return mh
 }
 
-// initSeeds initializes deterministic random seeds for each dimension
+func splitMix64(x uint64) uint64 {
+	z := x + 0x9e3779b97f4a7c15
+	z = (z ^ (z >> 30)) * 0xbf58476d1ce4e5b9
+	z = (z ^ (z >> 27)) * 0x94d049bb133111eb
+	return z ^ (z >> 31)
+}
+
 func (mh *MultiHash) initSeeds(hashId int) {
 	for i := 0; i < mh.dimensions; i++ {
-		// Use a deterministic method to generate seed for dimension i
-		// Here we're using a simple approach: 
-		// hash the dimension index and the hashId
-		// to create a unique seed for each dimension and hasher
-		h := fnv.New64a()
-		h.Write([]byte("dimension-seed-" + strconv.Itoa(i) + "-" + strconv.Itoa(hashId)))
-		mh.seeds[i] = binary.BigEndian.Uint64(h.Sum(nil))
+		// pack simply, then do two rounds:
+		state := uint64(i)<<32 | uint64(hashId)
+		z := splitMix64(state)
+		mh.seeds[i] = splitMix64(z + 0x9e3779b97f4a7c15)
+		//log.Printf("dim %v, hashId %v, seed %v\n", i, hashId, mh.seeds[i])
 	}
 }
 

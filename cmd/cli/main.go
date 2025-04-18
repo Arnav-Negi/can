@@ -77,10 +77,13 @@ func main() {
 		args := strings.Split(command, " ")
 		switch args[0] {
 		case "info":
-			ip, mins, maxs := dht.Node.GetInfo()
+			id, ip, mins, maxs, nbrs, data := dht.Node.GetInfo()
+			fmt.Println("Node ID:", id)
 			fmt.Println("IP:", ip)
 			fmt.Println("Coordinate minimums of Zone:", mins)
 			fmt.Println("Coordinate maximums of Zone:", maxs)
+			fmt.Println("Neighbours:", nbrs)
+			fmt.Println("Data stored in the DHT:", data)
 		case "put":
 			if len(args) != 3 {
 				fmt.Println("Usage: put <key> <value>")

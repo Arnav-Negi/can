@@ -46,6 +46,9 @@ func (node *Node) PutImplementation(key string, value []byte, hashToUse int) err
 			// Find coordinates for the key
 			// If in zone, store it locally -> NO ROUTING NEEDED
 			coords := node.RoutingTable.HashFunctions[i].GetCoordinates(key)
+
+			node.logger.Printf("COORDINATES: %v", coords)
+
 			if node.Info.Zone.Contains(coords) {
 				node.KVStore.Insert(key, value)
 				successChan <- struct{}{} // Signal success
